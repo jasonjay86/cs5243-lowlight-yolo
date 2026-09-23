@@ -4,7 +4,7 @@ CS5243 Computer Vision (Fall 2026) — Group 4 project.
 
 **Question:** Which low-light image enhancement method (classical CLAHE vs. neural SNR-Aware) most improves YOLO wildlife detection accuracy on nocturnal camera-trap images?
 
-**Team:** Jayson Jay (SNR-Aware), Krutin Patel, Richard Zanni.
+**Team:** Jayson Johnson (SNR-Aware), Krutin Patel, Richard Zanni.
 
 ## Layout
 
