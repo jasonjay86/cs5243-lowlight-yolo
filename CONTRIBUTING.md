@@ -69,6 +69,20 @@ overkill for a 3-person class project.
   is encouraged. Only the **approval** ("Approve" button) is the
   gatekeeper action.
 
+**Admin bypass (for emergencies):**
+
+`jasonjay86` is configured as a [bypass actor on the `main` branch
+protection rule](https://github.com/jasonjay86/cs5243-lowlight-yolo/settings/branches),
+so the repo owner can merge without an external approval. **This is a
+backdoor by design** — it exists so Jason can land urgent hotfixes when
+the team is unavailable. The expectation is:
+
+- Use it sparingly. The default path is still: branch → PR → wait for review → merge.
+- When you use it, **say so in the PR description** ("Self-merging: <reason>").
+  Transparency matters more than the bypass itself.
+- Krutin and Rich can ask Jason at any time to remove the bypass if it
+  gets misused. The setting is in one click and reversible.
+
 ## Code style
 
 - Python 3.10+ (conda env from `environment.yml`).
