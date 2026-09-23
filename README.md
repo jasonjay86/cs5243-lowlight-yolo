@@ -31,11 +31,12 @@ cs5243-lowlight-yolo/
 ## Order of operations
 
 1. **Anyone:** implement `enhancements/raw/` to nail down the `Enhancement` contract end-to-end.
-   ~30 min. Until this is done, Krutin and Rich can't validate their modules.
-2. **Krutin:** branch `feature/clahe`, implement `enhancements/clahe/`.
-3. **Rich:** branch `feature/yolo-detector`, implement `detection/`.
-4. **Whoever steps up:** branch `feature/eval-harness`, implement `evaluation/`.
-5. **All three:** schedule a 30-min sync to merge, smoke-test the full pipeline, agree on a reference GPU for latency numbers.
+   ~30 min. Until this is done, Jason, Krutin, and Rich can't validate their modules.
+2. **Jason:** branch `feature/snr-aware`, implement `enhancements/snr_aware/`.
+3. **Krutin:** branch `feature/clahe`, implement `enhancements/clahe/`.
+4. **Rich:** branch `feature/yolo-detector`, implement `detection/`.
+5. **Whoever steps up:** branch `feature/eval-harness`, implement `evaluation/`.
+6. **All three:** schedule a 30-min sync to merge, smoke-test the full pipeline, agree on a reference GPU for latency numbers.
 
 ## Quick start
 
