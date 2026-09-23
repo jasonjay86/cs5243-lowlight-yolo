@@ -1,0 +1,23 @@
+name: cs5243-lowlight-yolo
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.10
+  - pip
+  # Core
+  - numpy
+  - opencv>=4.8
+  - pillow
+  - pyyaml
+  - tqdm
+  - matplotlib
+  - pandas
+  # PyTorch (CPU build — swap to pytorch-cuda for GPU)
+  # Adjust to match your CUDA version; see https://pytorch.org/get-started/locally/
+  - pytorch::pytorch
+  - pip:
+    - ultralytics  # YOLOv8
+    # SNR-Aware reference repo: clone as a submodule or vendor under enhancements/snr_aware/

@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Datasets — never in git (too large; see data/README.md)
+data/
+!data/README.md
+
+# Model weights — never in git (use Git LFS or external storage)
+*.pt
+*.pth
+*.onnx
+*.weights
+**/weights/
+!enhancements/*/weights/.gitkeep
+
+# YOLO training/eval output
+runs/
+wandb/
+
+# Experiment outputs (predictions, logs)
+experiments/*/predictions/
+experiments/*/logs/
+experiments/*/checkpoints/
+!experiments/.gitkeep
+!experiments/*/config.yaml
+!experiments/*/results.json
+
+# Results artifacts (large files; small summaries OK)
+results/figures/*.png
+results/figures/*.pdf
+!results/figures/.gitkeep
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# Env files (secrets)
+.env
+.env.local
