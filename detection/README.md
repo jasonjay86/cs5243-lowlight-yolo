@@ -1,6 +1,6 @@
 # detection
 
-**Owner:** (YOLO lead — one person owns the whole detection interface)
+**Owner:** Rich Zanni
 
 Shared YOLO wrapper. Every enhancement method passes its output through the
 same detection code so the comparison is fair.

@@ -1,6 +1,6 @@
 # CLAHE (Classical)
 
-**Owner:** (CLAHE lead — Krutin / Richard)
+**Owner:** Krutin Patel
 
 **Contrast Limited Adaptive Histogram Equalization** — the classical baseline
 for low-light image enhancement. Fast, no learned parameters, deterministic.

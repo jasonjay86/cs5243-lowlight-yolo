@@ -1,7 +1,7 @@
 """
 Placeholder for the CLAHE (Contrast Limited Adaptive Histogram Equalization) module.
 
-Owner: (unassigned — see enhancements/clahe/README.md)
+Owner: Krutin Patel (see enhancements/clahe/README.md)
 
 When implementing:
 1. Apply CLAHE per-channel on the L channel of LAB (not directly on BGR).

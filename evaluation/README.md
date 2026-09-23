@@ -1,6 +1,6 @@
 # evaluation
 
-**Owner:** (eval harness lead)
+**Owner:** Jason Johnson
 
 Compares detection results across enhancement methods and reports:
 

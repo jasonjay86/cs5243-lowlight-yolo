@@ -1,6 +1,6 @@
 # SNR-Aware (Neural)
 
-**Owner:** Jayson Jay
+**Owner:** Jason Johnson
 
 SNR-Aware is a **transformer-based low-light enhancement model** that uses
 signal-to-noise ratio information to guide the enhancement. It is the

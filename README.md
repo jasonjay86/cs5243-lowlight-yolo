@@ -4,7 +4,26 @@ CS5243 Computer Vision (Fall 2026) — Group 4 project.
 
 **Question:** Which low-light image enhancement method (classical CLAHE vs. neural SNR-Aware) most improves YOLO wildlife detection accuracy on nocturnal camera-trap images?
 
-**Team:** Jayson Johnson (SNR-Aware), Krutin Patel, Richard Zanni.
+**Team:**
+- **Jason Johnson** — SNR-Aware enhancement, evaluation harness, integration
+- **Krutin Patel** — CLAHE (classical) enhancement
+- **Rich Zanni** — YOLO detection pipeline
+
+## Module ownership
+
+```
+cs5243-lowlight-yolo/
+├── enhancements/
+│   ├── base.py            # Enhancement interface — shared contract
+│   ├── raw/               # No-op baseline (shared)
+│   ├── clahe/             # → Krutin Patel
+│   └── snr_aware/         # → Jason Johnson
+├── detection/             # → Rich Zanni (shared YOLO wrapper)
+├── evaluation/            # → Jason Johnson (mAP + ΔmAP harness)
+├── experiments/           # → Jason Johnson (one folder per run)
+├── results/               # shared output
+└── scripts/               # → Rich Zanni (convenience runners)
+```
 
 ## Layout
 

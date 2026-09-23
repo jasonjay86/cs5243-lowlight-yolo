@@ -6,17 +6,18 @@ This is a 3-person semester project. The workflow is light but consistent.
 
 - `main` is **protected** — no direct commits, no force-pushes.
 - Each enhancement module gets its own feature branch:
-  - `feature/raw-baseline`
-  - `feature/clahe`
-  - `feature/snr-aware`  ← Jayson
-- `feature/eval-harness` for shared evaluation/detection code.
+  - `feature/clahe`            ← Krutin Patel
+- `feature/snr-aware`        ← Jason Johnson
+- `feature/yolo-detector`    ← Rich Zanni
+- `feature/eval-harness`     ← Jason Johnson (shared eval + integration)
 
 ## Workflow
 
 1. Branch from `main`.
-2. Commit small, focused changes with messages like `claude: implement LAB-CLAHE passthrough`.
+2. Commit small, focused changes with messages like
+   `krutin: implement LAB-CLAHE passthrough` (prefix with your first name).
 3. Open a PR into `main` when your module is ready.
-4. Jayson (repo owner) reviews + merges.
+4. **Jason Johnson** (repo owner) reviews + merges.
 
 ## Code style
 

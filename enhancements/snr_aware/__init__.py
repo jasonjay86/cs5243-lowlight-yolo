@@ -1,7 +1,7 @@
 """
 SNR-Aware low-light image enhancement.
 
-Owner: Jayson Jay
+Owner: Jason Johnson
 
 See enhancements/snr_aware/README.md for the architecture, paper reference,
 and setup instructions. This file is the entry point — it must register an
