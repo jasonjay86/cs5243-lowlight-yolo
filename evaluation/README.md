@@ -1,6 +1,6 @@
 # evaluation
 
-**Owner:** Jason Johnson
+**Owner:** (unassigned — depends on detection/contract being stable; grab after raw + clahe are running)
 
 Compares detection results across enhancement methods and reports:
 

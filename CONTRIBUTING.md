@@ -9,7 +9,7 @@ This is a 3-person semester project. The workflow is light but consistent.
   - `feature/clahe`            ← Krutin Patel
 - `feature/snr-aware`        ← Jason Johnson
 - `feature/yolo-detector`    ← Rich Zanni
-- `feature/eval-harness`     ← Jason Johnson (shared eval + integration)
+- `feature/eval-harness`     ← unassigned (grab after detection contract is stable)
 
 ## Workflow
 
