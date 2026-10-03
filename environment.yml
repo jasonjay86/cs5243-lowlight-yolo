@@ -18,6 +18,7 @@ dependencies:
   # PyTorch (CPU build — swap to pytorch-cuda for GPU)
   # Adjust to match your CUDA version; see https://pytorch.org/get-started/locally/
   - pytorch::pytorch
-  - pip:
+    - pip:
     - ultralytics  # YOLOv8
+    - gdown>=4.7   # SNR-Aware weights download (research-use, see enhancements/snr_aware/README.md)
     # SNR-Aware reference repo: clone as a submodule or vendor under enhancements/snr_aware/
