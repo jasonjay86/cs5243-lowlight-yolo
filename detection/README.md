@@ -28,6 +28,7 @@ The evaluation harness will:
 
 ## Notes
 
+- Yolo weights are downloaded automatically on first use.
 - Pin the YOLO weights (`*.pt`) — store under `weights/` (gitignored) or via Git LFS.
 - Record YOLO weights, version, and inference settings in
   `experiments/<run>/config.yaml`.
