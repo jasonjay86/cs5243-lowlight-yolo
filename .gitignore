@@ -55,3 +55,4 @@ Thumbs.db
 # Env files (secrets)
 .env
 .env.local
+snr_aware_keys.txt
