@@ -49,6 +49,55 @@ def _pad_to_multiple(img: np.ndarray, multiple: int) -> tuple[np.ndarray, int, i
     return padded, h_pad, w_pad
 
 
+def compute_snr_mask(image: np.ndarray) -> np.ndarray:
+    """Compute the per-pixel SNR prior the SNR-Aware network expects.
+
+    This reproduces the recipe from the upstream reference implementation
+    (JIA-Lab-research/SNR-Aware-Low-Light-Enhance, models/Video_base_model4_m.py
+    ::test4 and data/dataset_LOLv1.py):
+
+        1. nf  = 5x5 box blur of the low-light input  ("noise floor" proxy)
+        2. dark  = grayscale-weighted input
+           light = grayscale-weighted nf
+           noise  = |dark - light|
+        3. mask  = light / (noise + eps)               (per-pixel SNR)
+        4. mask  = mask / (per-image max + eps)       (normalise to [0,1])
+        5. mask  = clamp(mask, 0, 1)
+
+    Returns:
+        Float32 array of shape (H, W) in [0, 1], where 1.0 marks high-SNR
+        (clean) regions that take the light reconstruction path and 0.0 marks
+        low-SNR (noisy) regions that take the transformer path.
+
+    Note: upstream computes `nf` from the low-light input itself, so this is a
+    self-referential noise estimate. That is intentional: it matches how
+    LOLv1.pth was trained, and it is the only SNR signal available at
+    inference time for an unpaired image.
+    """
+    img = image.astype(np.float32) / 255.0
+    if img.ndim == 2:
+        img = np.expand_dims(img, axis=2)
+
+    # 1. 5x5 blur as the noise-floor proxy (upstream: cv2.blur, box filter).
+    nf = cv2.blur(img, (5, 5))
+
+    # 2. Luma-weighted dark (input) and light (blurred) estimates.
+    dark = img[:, :, 0] * 0.299 + img[:, :, 1] * 0.587 + img[:, :, 2] * 0.114
+    light = nf[:, :, 0] * 0.299 + nf[:, :, 1] * 0.587 + nf[:, :, 2] * 0.114
+
+    # 3. Per-pixel SNR.
+    noise = np.abs(dark - light)
+    mask = light / (noise + 0.0001)
+
+    # 4. Normalise by the per-image maximum.
+    mask_max = mask.max()
+    if mask_max > 0:
+        mask = mask / (mask_max + 0.0001)
+
+    # 5. Clamp to [0, 1].
+    return np.clip(mask, 0.0, 1.0).astype(np.float32)
+
+
 class SNRAwareEnhancement:
     """Inference wrapper exposing the SNRAwareGenerator as an Enhancement.
 
@@ -117,10 +166,21 @@ class SNRAwareEnhancement:
         x = np.ascontiguousarray(x.transpose(2, 0, 1))  # HWC -> CHW
         x_tensor = torch.from_numpy(x).unsqueeze(0).to(self.device)  # (1, 3, H', W')
 
-        # 3. Forward pass. Default mask = all ones (full light trunk path),
-        # which is the closest approximation to "uniformly well-lit input".
+        # 3. Forward pass. The SNR prior is REQUIRED by the network: it decides
+        # per-pixel whether a region takes the transformer path (low SNR) or
+        # the light reconstruction path (high SNR). Upstream computes it in
+        # the model wrapper from the input and its 5x5 blur; we reproduce
+        # that recipe in compute_snr_mask().
+        #
+        # Previously we called model(x_tensor) with no mask, and model.py
+        # defaulted to an all-ones mask. That routed the whole image down the
+        # light path and zeroed the transformer output, so SNR-Aware was
+        # never actually doing SNR-aware processing.
+        mask_np = compute_snr_mask(padded)
+        mask_tensor = torch.from_numpy(mask_np).unsqueeze(0).unsqueeze(0).to(self.device)
+
         with torch.no_grad():
-            y_tensor = model(x_tensor)
+            y_tensor = model(x_tensor, mask_tensor)
 
         # 4. Float -> uint8, RGB -> BGR, drop batch dim, crop padding.
         y = y_tensor.squeeze(0).clamp(0.0, 1.0).cpu().numpy()
