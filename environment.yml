@@ -29,3 +29,4 @@ dependencies:
       - torchvision==0.29.1
       - ultralytics==8.4.173 # YOLOv8 (detection/yolo_detector.py)
       - gdown==6.4.1 # SNR-Aware weights download (see enhancements/snr_aware/README.md)
+      - einops==0.8.2
