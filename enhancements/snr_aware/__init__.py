@@ -16,7 +16,9 @@ Suggested layout for the full implementation:
 from __future__ import annotations
 
 from enhancements.base import Enhancement, register
-from enhancements.snr_aware.enhance import SNRAwareEnhancement
+from enhancements.snr_aware.enhance import SNRAwareEnhancement, compute_snr_mask
+
+__all__ = ["SNRAwareEnhancement", "compute_snr_mask"]
 
 
 @register

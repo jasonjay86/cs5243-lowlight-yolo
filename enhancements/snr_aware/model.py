@@ -291,22 +291,46 @@ class SNRAwareGenerator(nn.Module):
         self.lrelu = nn.LeakyReLU(negative_slope=0.1, inplace=True)
         self.transformer = Encoder_patch66(d_model=1024, d_inner=2048, n_layers=6)
 
-    # The forward() method is the only place where we accept a `mask` argument
-    # — that's the SNR prior passed in at evaluation time. See enhance.py for
-    # how we synthesize a uniform mask for inference when SNR info isn't
-    # supplied.
-    def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+    # The forward() method is the only place where we accept a `mask` argument,
+    # which is the SNR prior passed in at evaluation time. The mask is REQUIRED.
+    #
+    # Upstream (models/archs/low_light_transformer.py) declares `mask=None` but
+    # then calls F.interpolate(mask, ...) with no None guard, so upstream itself
+    # always supplies a real mask; it is computed in the model wrapper
+    # (Video_base_model4_m.py::test4) from the input and its 5x5 blur.
+    #
+    # We previously defaulted a missing mask to all-ones. That silently ran the
+    # entire image down the high-SNR "light" branch and multiplied the
+    # transformer output by zero, so the SNR-aware path was never exercised.
+    # See enhance.py::compute_snr_mask for the upstream-equivalent recipe.
+    def forward(self, x: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         """Run the SNR-aware generator.
 
         Args:
             x: input image tensor of shape (B, 3, H, W), any dtype/float range.
                The vendored LOLv1 weights expect 0..1 float inputs.
             mask: SNR prior map of shape (B, 1, H, W), float in [0, 1].
-                  1.0 = high-SNR (use light trunk), 0.0 = low-SNR (use heavy
-                  trunk). If None, defaults to an all-ones mask (full
-                  light-trunk path) which is the closest approximation to
-                  "uniformly well-lit input".
+                  1.0 = high-SNR (use light trunk), 0.0 = low-SNR (use the
+                  transformer output). Required; use
+                  enhancements.snr_aware.enhance.compute_snr_mask to build one
+                  from an input image.
+
+        Raises:
+            ValueError: if mask is None or has the wrong shape. A missing mask
+                is a loud error, not a silent all-ones default.
         """
+        if mask is None:
+            raise ValueError(
+                "SNRAwareGenerator.forward() requires an SNR mask. "
+                "Use enhancements.snr_aware.enhance.compute_snr_mask(image) "
+                "to compute one from the input."
+            )
+        if mask.shape[1] != 1 or mask.shape[0] != x.shape[0] or \
+                mask.shape[2:] != x.shape[2:]:
+            raise ValueError(
+                f"mask must have shape (B, 1, H, W) matching the input; "
+                f"got {tuple(mask.shape)} for input {tuple(x.shape)}."
+            )
         x_center = x
 
         # Stage 1: shallow feature extraction. With HR_in=True this is a
@@ -318,14 +342,9 @@ class SNRAwareGenerator(nn.Module):
         fea = self.feature_extraction(L1_fea_3)
         fea_light = self.recon_trunk_light(fea)
 
-        # Default mask: all-ones — entire image is "high SNR", use light trunk.
-        if mask is None:
-            mask = torch.ones(
-                (x_center.size(0), 1, x_center.size(2), x_center.size(3)),
-                dtype=x_center.dtype,
-                device=x_center.device,
-            )
-
+        # The mask is required and supplied by the caller. Upstream computes it
+        # in the model wrapper from the input and its 5x5 blur; enhance.py
+        # reproduces that recipe in compute_snr_mask().
         h_feature = fea.shape[2]
         w_feature = fea.shape[3]
         mask = F.interpolate(mask, size=[h_feature, w_feature], mode="nearest")

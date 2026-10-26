@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import warnings
 import random
 import sys
@@ -48,6 +49,22 @@ from pathlib import Path
 import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+# OpenMP-on-Windows: PyTorch and Ultralytics both link against an OpenMP
+# runtime, and on a stock conda+pip install the second one to initialise
+# refuses to load (OMP Error #15: "Initializing libomp.dll, but found
+# libiomp5md.dll already initialized"). The crash aborts the run partway
+# through, which is especially confusing because it happens on the FIRST
+# method that touches torch, not at import time.
+#
+# KMP_DUPLICATE_LIB_OK=TRUE is Intel's documented workaround for the
+# inference path (as opposed to training). It is set BEFORE torch and
+# ultralytics are imported so both see the flag. The risk of silently
+# wrong numerics is real but low for inference on a fixed model.
+#
+# If you would rather set it in your shell instead of in this file, this
+# setdefault() leaves an externally-set value alone.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 warnings.filterwarnings("ignore", message="All-NaN slice")
 
@@ -364,7 +381,15 @@ def run_method(name, items, model, imgsz, conf_floor):
         print(f"(snr-aware not importable: {e})")
     from enhancements.base import get_enhancement
 
-    enh = get_enhancement(name)
+    try:
+        enh = get_enhancement(name)
+    except KeyError:
+        raise SystemExit(
+            f"ERROR: enhancement '{name}' is not registered. "
+            f"A module may have failed to import (see any warning above). "
+            f"Run with --methods raw clahe snr-aware only after the module "
+            f"imports cleanly."
+        )
     dets, enh_t, yolo_t, mps = [], [], [], []
     for k, it in enumerate(items, 1):
         img = cv2.imread(it.path, cv2.IMREAD_COLOR)
