@@ -1,0 +1,5 @@
+method,empty-frame FP rate,CI low,CI high,"FP rate (all detections, conf floor)",precision
+raw,0.0400,0.0000,0.1364,,0.588
+clahe,0.0800,0.0000,0.1937,,0.581
+snr-aware,0.0400,0.0000,0.1364,,0.472
+retinexformer,0.0800,0.0000,0.2069,,0.433

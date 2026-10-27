@@ -1,0 +1,314 @@
+{
+  "raw": {
+    "by_light": {
+      "night": {
+        "n_frames": 100,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 75,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bobcat": {
+        "n_frames": 7,
+        "n_gt": 7,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "cat": {
+        "n_frames": 6,
+        "n_gt": 6,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "coyote": {
+        "n_frames": 8,
+        "n_gt": 8,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 21,
+        "n_gt": 21,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "rabbit": {
+        "n_frames": 8,
+        "n_gt": 9,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "raccoon": {
+        "n_frames": 11,
+        "n_gt": 12,
+        "precision": 0.0,
+        "recall": 0.0
+      }
+    }
+  },
+  "clahe": {
+    "by_light": {
+      "night": {
+        "n_frames": 100,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 75,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bobcat": {
+        "n_frames": 7,
+        "n_gt": 7,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "cat": {
+        "n_frames": 6,
+        "n_gt": 6,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "coyote": {
+        "n_frames": 8,
+        "n_gt": 8,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 21,
+        "n_gt": 21,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "rabbit": {
+        "n_frames": 8,
+        "n_gt": 9,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "raccoon": {
+        "n_frames": 11,
+        "n_gt": 12,
+        "precision": 0.0,
+        "recall": 0.0
+      }
+    }
+  },
+  "snr-aware": {
+    "by_light": {
+      "night": {
+        "n_frames": 100,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 75,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bobcat": {
+        "n_frames": 7,
+        "n_gt": 7,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "cat": {
+        "n_frames": 6,
+        "n_gt": 6,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "coyote": {
+        "n_frames": 8,
+        "n_gt": 8,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 21,
+        "n_gt": 21,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "rabbit": {
+        "n_frames": 8,
+        "n_gt": 9,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "raccoon": {
+        "n_frames": 11,
+        "n_gt": 12,
+        "precision": 0.0,
+        "recall": 0.0
+      }
+    }
+  },
+  "retinexformer": {
+    "by_light": {
+      "night": {
+        "n_frames": 100,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 75,
+        "n_gt": 77,
+        "precision": 0.0,
+        "recall": 0.0,
+        "ap50": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bobcat": {
+        "n_frames": 7,
+        "n_gt": 7,
+        "precision": NaN,
+        "recall": 0.0
+      },
+      "cat": {
+        "n_frames": 6,
+        "n_gt": 6,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "coyote": {
+        "n_frames": 8,
+        "n_gt": 8,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "empty": {
+        "n_frames": 25,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 21,
+        "n_gt": 21,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "rabbit": {
+        "n_frames": 8,
+        "n_gt": 9,
+        "precision": 0.0,
+        "recall": 0.0
+      },
+      "raccoon": {
+        "n_frames": 11,
+        "n_gt": 12,
+        "precision": 0.0,
+        "recall": 0.0
+      }
+    }
+  }
+}

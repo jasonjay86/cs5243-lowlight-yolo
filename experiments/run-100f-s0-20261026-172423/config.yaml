@@ -1,0 +1,33 @@
+_env:
+  cuda_available: false
+  numpy: 2.2.6
+  opencv: not installed
+  platform: Windows-10-10.0.26200-SP0
+  python: 3.10.21
+  torch: 2.14.1+cpu
+  ultralytics: 8.4.170
+annotations: C:\Users\jjfro\Documents\cs5243-Computer-Vision\cs5243-lowlight-yolo\data\cct20\caltech_bboxes_20200316.json
+bootstrap: 1000
+conf: 0.25
+conf_floor: 0.001
+device: cuda
+image_labels: C:\Users\jjfro\Documents\cs5243-Computer-Vision\cs5243-lowlight-yolo\data\cct20\caltech_camera_traps.json.zip
+images_dir: C:\Users\jjfro\Documents\cs5243-Computer-Vision\cs5243-lowlight-yolo\data\cct20\eccv_18_all_images_sm
+imgsz: 640
+max_images: 100
+methods:
+- raw
+- clahe
+- snr-aware
+- retinexformer
+repo_root: C:\Users\jjfro\Documents\cs5243-Computer-Vision\cs5243-lowlight-yolo
+run_id: run-100f-s0-20261026-172423
+seed: 0
+strata:
+  day_fraction: 0.25
+  empty_fraction: 0.25
+  min_per_species: 1
+  night_end_hour: 6
+  night_start_hour: 19
+  species_balance: natural
+yolo_weights: C:\Users\jjfro\Documents\cs5243-Computer-Vision\cs5243-lowlight-yolo\detection\yolov8n.pt
