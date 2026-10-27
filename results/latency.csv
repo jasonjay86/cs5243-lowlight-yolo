@@ -1,0 +1,5 @@
+method,enhance ms/img,YOLO ms/img,total ms/img,enhance share of total,GFLOPs/MP
+raw,0.0,52.6,52.6,0.000,n/a
+clahe,52.1,47.8,99.9,0.521,n/a
+snr-aware,4076.4,62.7,4139.1,0.985,n/a
+retinexformer,7674.3,65.9,7740.2,0.991,n/a
