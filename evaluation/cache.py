@@ -66,9 +66,13 @@ class MethodPredictions:
 class PredictionCache:
     """Reads and writes the per-method detection cache for one run."""
 
-    def __init__(self, run_dir: Path, fingerprint: str):
+    def __init__(self, run_dir: Path, fingerprint: str,
+                 legacy_fingerprints: list[str] | None = None):
         self.dir = Path(run_dir) / "predictions"
         self.fingerprint = fingerprint
+        # Fingerprints from earlier schemes whose caches are still valid.
+        # A cache written under one of these is accepted as current.
+        self.legacy_fingerprints = list(legacy_fingerprints or [])
 
     # ------------------------------------------------------------------
     def _paths(self, method: str) -> tuple[Path, Path]:
@@ -83,7 +87,29 @@ class PredictionCache:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
         except Exception:
             return False
-        return meta.get("fingerprint") == self.fingerprint
+        stored = meta.get("fingerprint")
+        if stored == self.fingerprint:
+            return True
+        return stored in self.legacy_fingerprints
+
+    def why_stale(self, method: str) -> str:
+        """Explain why a method's cache is not current, or ''. """
+        npz_path, meta_path = self._paths(method)
+        if not npz_path.is_file():
+            return "no cached predictions"
+        if not meta_path.is_file():
+            return "cache metadata missing"
+        try:
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        except Exception:
+            return "cache metadata unreadable"
+        stored = meta.get("fingerprint")
+        if stored == self.fingerprint:
+            return ""
+        if stored in self.legacy_fingerprints:
+            return ""
+        return (f"fingerprint changed (cache {stored}, "
+                f"run {self.fingerprint})")
 
     def save(self, preds: MethodPredictions) -> None:
         self.dir.mkdir(parents=True, exist_ok=True)
