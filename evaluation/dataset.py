@@ -382,4 +382,9 @@ def summarise_sample(frames: list[Frame]) -> dict:
         "n_day": sum(1 for f in frames if not f.is_night),
         "n_boxes": sum(f.n_animals for f in frames),
         "species": dict(species.most_common()),
+        # True only if every frame carries a real timestamp. The CCT-20
+        # box annotations have no datetime field, so the day/night split
+        # is a DEFAULT in that case and must not be reported as a
+        # measurement.
+        "day_night_measured": all(bool(f.datetime) for f in frames),
     }

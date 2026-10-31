@@ -130,20 +130,88 @@ class RunConfig:
         return RunConfig(strata=strata, **data)
 
     # ------------------------------------------------------------------
+    def fingerprint_inputs(self, frame_ids: list[str],
+                           gt_digest: str = "") -> dict:
+        """The inputs that affect the CACHED DETECTIONS, as a dict.
+
+        This is the authoritative description of what a prediction cache
+        depends on. It is stored in the cache alongside the fingerprint so
+        a cache can be checked field by field, and so a mismatch can be
+        explained rather than just reported as "stale".
+
+        Scoring parameters are deliberately absent. `conf` is the
+        threshold the metrics are computed at, and the cached boxes were
+        produced at a confidence FLOOR, not at `conf`. Changing `conf`
+        re-scores the same detections, so it must not invalidate them. If
+        it did, every threshold sweep would throw away the inference work
+        and then fail with "no cached predictions".
+        """
+        inputs: dict[str, Any] = {
+            "methods": list(self.methods),
+            "imgsz": self.imgsz,
+            "conf_floor": self.conf_floor,
+            "device": self.device,
+            "yolo_weights": str(self.yolo_weights),
+            "n_frames": len(frame_ids),
+            "frame_digest": _text_digest(frame_ids),
+            "gt_digest": gt_digest,
+        }
+        for label, p in (("annotations", self.annotations),
+                         ("image_labels", self.image_labels),
+                         ("yolo_weights_file", self.yolo_weights)):
+            if p:
+                path = Path(p)
+                if path.is_file():
+                    inputs[label] = file_sha256(path)
+                elif label == "yolo_weights_file":
+                    inputs[label] = "MISSING"
+        inputs["env"] = env_fingerprint()
+        return inputs
+
+    # ------------------------------------------------------------------
     def analysis_fingerprint(self, frame_ids: list[str],
                              gt_digest: str = "") -> str:
         """Hash of every input that can change the numbers.
 
         Used to decide whether a cached prediction file is still valid.
-        Includes the frame list, the annotation file's contents, the
-        enhancement/detector settings, and the environment.
+        Only inputs that affect the CACHED DETECTIONS belong here; see
+        `fingerprint_inputs` for the reasoning.
 
         `gt_digest` is a hash of the RESOLVED ground-truth boxes. The
         annotation file's hash is not enough on its own: the boxes depend
         on the on-disk image dimensions as well, so a change in how the
-        boxes are resolved must invalidate the cache too. Cached
-        detections are still valid in that case, but the cached *scores*
-        are not, so the digest is part of the fingerprint.
+        boxes are resolved must invalidate the cache too.
+        """
+        h = hashlib.sha256()
+
+        def feed(label: str, value: Any) -> None:
+            h.update(label.encode("utf-8"))
+            h.update(b"\x00")
+            h.update(str(value).encode("utf-8"))
+            h.update(b"\x00")
+
+        for label, value in self.fingerprint_inputs(frame_ids,
+                                                    gt_digest).items():
+            if label == "env":
+                feed(label, json.dumps(value, sort_keys=True))
+            else:
+                feed(label, value)
+        return h.hexdigest()[:16]
+
+    # ------------------------------------------------------------------
+    def legacy_analysis_fingerprint(self, frame_ids: list[str],
+                                    gt_digest: str = "") -> str:
+        """The fingerprint scheme used before the scoring/inference split.
+
+        Caches written by an earlier version of the harness carry this
+        fingerprint. Their detections are still perfectly good — the
+        change that forced this method was to stop mixing scoring
+        parameters into the hash, which does not alter the detections.
+
+        Accepting the old fingerprint means those caches are not thrown
+        away and the inference work is not repeated. The scheme is kept
+        verbatim so old fingerprints still verify; delete it once no
+        pre-split caches remain.
         """
         h = hashlib.sha256()
 
@@ -179,6 +247,20 @@ class RunConfig:
                     feed(label, "MISSING")
         feed("env", json.dumps(env_fingerprint(), sort_keys=True))
         return h.hexdigest()[:16]
+
+
+def _text_digest(items: list[str]) -> str:
+    """A short hash of an ordered list of strings.
+
+    Used for the frame list. The order matters: the cached detections
+    reference frames by index, so the same frames in a different order
+    are a different set of predictions.
+    """
+    h = hashlib.sha256()
+    for s in items:
+        h.update(str(s).encode("utf-8"))
+        h.update(b"\n")
+    return h.hexdigest()[:16]
 
 
 def file_sha256(path: Path, chunk: int = 1 << 20) -> str:

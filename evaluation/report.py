@@ -134,8 +134,16 @@ def write_sample_manifest(sample: dict, path: Path) -> Path:
 # Figure
 # ----------------------------------------------------------------------
 def draw_figure(results, all_stats, conf: float, caption: str, title: str,
-                out_path: Path) -> Path:
-    """Results table on top, PR curves and delta-mAP bars below."""
+                out_path: Path, demo: bool = False) -> Path:
+    """Results table on top, PR curves and delta-mAP bars below.
+
+    The layout matches scripts/evaluate_enhancements.py (Krutin Patel,
+    PR #8) so the two figures are directly comparable: same table columns,
+    same two panels, same palette, same caption placement.
+
+    `demo=True` stamps a red banner over the title. It exists so a layout
+    check can never be mistaken for a real result.
+    """
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -153,6 +161,10 @@ def draw_figure(results, all_stats, conf: float, caption: str, title: str,
                           wspace=0.18, left=0.05, right=0.97, top=0.90,
                           bottom=0.10)
     fig.text(0.05, 0.955, title, fontsize=17, fontweight="bold", ha="left")
+    if demo:
+        fig.text(0.05, 0.925,
+                 "SYNTHETIC DEMO DATA: layout check only, not real results",
+                 fontsize=13, fontweight="bold", color="#b3261e", ha="left")
 
     # ---- table ----
     ax = fig.add_subplot(gs[0, :])
@@ -160,20 +172,27 @@ def draw_figure(results, all_stats, conf: float, caption: str, title: str,
     head = ["", "Condition", "mAP@0.5\n[95% CI]", "mAP@\n0.5:0.95",
             f"Precision\n(conf>={conf})", f"Recall\n(conf>={conf})",
             "Δ mAP@0.5 vs raw\n[95% CI]", "Empty-frame\nFP rate [95% CI]",
-            "Enhance\n(ms/img)", "YOLO\n(ms/img)"]
+            "Enhance\n(ms/img)", "YOLO\n(ms/img)", "Enhance\nGFLOPs/MP"]
     cells = []
     for r in results:
         base = r.method == names[0]
         cells.append([
-            "", r.method + " + YOLO",
+            "", r.method,
             f"{fmt(r.ap50)}\n[{fmt(r.ap50_ci[0])}, {fmt(r.ap50_ci[1])}]",
             fmt(r.map5095), fmt(r.precision), fmt(r.recall),
             "baseline" if base else
             f"{fmt(r.d_ap50, 4)}\n[{fmt(r.d_ci[0], 4)}, {fmt(r.d_ci[1], 4)}]",
             f"{fmt(r.fp_rate, 2)}\n[{fmt(r.fp_ci[0], 2)}, {fmt(r.fp_ci[1], 2)}]",
             fmt(r.enh_ms, 1), fmt(r.yolo_ms, 1),
+            fmt(r.gflops_mp, 1) if r.gflops_mp is not None else "n/a",
         ])
-    widths = [0.015, 0.14, 0.12, 0.08, 0.09, 0.08, 0.15, 0.14, 0.08, 0.08]
+    # The condition column holds the enhancement name alone. The "+ YOLO"
+    # suffix that used to sit on every row is redundant: the title, the
+    # axis labels and the legend all say that the detector is YOLO. It
+    # also made the longest name ("retinexformer + YOLO") overflow its
+    # cell into the neighbouring column.
+    widths = [0.015, 0.155, 0.11, 0.07, 0.08, 0.08, 0.145, 0.125, 0.07,
+              0.07, 0.08]
     tb = ax.table(cellText=cells, colLabels=head, colWidths=widths,
                   loc="upper center", cellLoc="center")
     tb.auto_set_font_size(False)
@@ -192,11 +211,23 @@ def draw_figure(results, all_stats, conf: float, caption: str, title: str,
                 c.set_facecolor(color[names[ri - 1]])
             if ci == 1:
                 c.set_text_props(fontweight="bold", ha="left")
-    ax.text(0.0, -0.02,
-            "Class-agnostic: every ground-truth box is one 'animal' class; a "
-            "detection counts if it boxes the right place, whatever its COCO "
-            "label. Higher is better except FP rate and latency.",
-            transform=ax.transAxes, fontsize=10, color=INK2, va="top")
+
+    # The footnote goes UNDER the table, not at a fixed axes coordinate.
+    # tb.scale(1, 2.9) makes the table taller than the axes it sits in, so
+    # it grows downward past the axes boundary. A footnote placed at a fixed
+    # axes-relative y lands inside the table's last row and overlaps it.
+    # Measure the table's real extent instead and place the footnote just
+    # below it in figure coordinates.
+    fig.canvas.draw()
+    _renderer = fig.canvas.get_renderer()
+    _tb_box = tb.get_window_extent(_renderer)
+    _fig_box = fig.get_window_extent(_renderer)
+    _foot_y = (_tb_box.y0 / _fig_box.height) - 0.022
+    fig.text(0.05, _foot_y,
+             "Class-agnostic: every ground-truth box is one 'animal' class; "
+             "a detection counts if it boxes the right place, whatever its "
+             "COCO label. Higher is better except FP rate and latency.",
+             fontsize=10, color=INK2, va="top", ha="left")
 
     # ---- panel A: PR curves ----
     from evaluation.metrics import pr_curve

@@ -1,5 +1,5 @@
 {
-  "fingerprint": "a98b0c37538448a1",
+  "fingerprint": "c4043857f246bab6",
   "frames": [
     "C:\\Users\\jjfro\\Documents\\cs5243-Computer-Vision\\cs5243-lowlight-yolo\\data\\cct20\\eccv_18_all_images_sm\\5858c0ac-23d2-11e8-a6a3-ec086b02610b.jpg",
     "C:\\Users\\jjfro\\Documents\\cs5243-Computer-Vision\\cs5243-lowlight-yolo\\data\\cct20\\eccv_18_all_images_sm\\5860ef53-23d2-11e8-a6a3-ec086b02610b.jpg",
@@ -124,6 +124,7 @@
       "fox": 1,
       "rodent": 1,
       "skunk": 1
-    }
+    },
+    "day_night_measured": false
   }
 }
