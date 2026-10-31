@@ -15,6 +15,13 @@ Replaces the placeholder in `evaluation/`. The metric implementation is
 factored out of `scripts/evaluate_enhancements.py` (Krutin Patel, PR #8),
 which still works unchanged.
 
+## Requirements
+
+```bash
+conda activate cs5243-lowlight-yolo
+pip install einops==0.8.2      # Retinexformer's dependency
+```
+
 ## Running the pipeline
 
 ```bash
@@ -47,19 +54,30 @@ python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda
 the final numbers. On CPU, budget roughly 4 s/image for `snr-aware` and
 8 s/image for `retinexformer`.
 
-## Re-scoring without re-running inference
+### Re-scoring without re-running inference
 
 Predictions are cached per method, so changing a threshold or adding a
 metric is a seconds-long operation rather than a full re-run:
 
 ```bash
-python scripts/run_evaluation.py --config experiments/<run>/config.yaml --rescore
+# Rescore the most recent run. No arguments needed.
+python scripts/run_evaluation.py --rescore
+
+# Or name a specific run.
+python scripts/run_evaluation.py --rescore --run-id run-100f-s0-20261026-143022
+
+# Sweep a threshold. The cached detections are reused, so this is fast.
+python scripts/run_evaluation.py --rescore --conf 0.5
 ```
 
-The cache is invalidated automatically when anything that could change the
-numbers changes: the frame list, the ground-truth boxes, the annotation
-file, the thresholds, the detector weights, the library versions, or the
-device.
+A rescore always uses the frame list stored in the run, so the numbers
+cannot drift from the original. The cache is invalidated only when
+something that affects the *detections* changes: the frame list, the
+ground-truth boxes, the annotation file, the detector weights, the input
+size, the confidence floor, or the library versions. Scoring parameters
+like `--conf` and `--bootstrap` do **not** invalidate it, because they
+are applied when the cached detections are scored, not when they are
+made.
 
 ### Other options
 
@@ -78,16 +96,27 @@ device.
 | `--no-cache` | off | ignore any existing cache and recompute |
 | `--no-write-results` | off | write the run artefacts but not the `results/` summaries |
 
-### Smoke testing the pipeline
+### Running the tests
+
+```bash
+python tests/run_all_tests.py           # everything, ~40s
+```
+
+Or individually:
 
 ```bash
 python tests/test_evaluation.py        # metric arithmetic, 29 tests
 python tests/test_pipeline_smoke.py    # full pipeline with a fake detector
+python tests/test_figure_layout.py     # figure geometry, 4 tests
+python tests/test_rescore.py           # rescore error handling, 4 tests
+python tests/test_rescore_e2e.py       # rescore end to end
 ```
 
-The smoke test runs the whole path — config, selection, prediction, caching,
-scoring, reporting — against a synthetic dataset and a fake detector, so it
-finishes in seconds and needs no weights or GPU.
+They are plain scripts with their own runners, so pytest is not required
+(it is not in `environment.yml`). The smoke test runs the whole path —
+config, selection, prediction, caching, scoring, reporting — against a
+synthetic dataset and a fake detector, so it finishes in seconds and
+needs no weights or GPU.
 
 ## What you get
 
@@ -114,9 +143,18 @@ Committed summaries, under `results/`:
 ## Reading the results
 
 **The sample is stratified, not random.** Empty frames are included on
-purpose, because without them the false-positive metric is undefined. Night
-and day are separated so a daylight frame acts as a control on the
-enhancement itself. Frames containing a car are skipped.
+purpose, because without them the false-positive metric is undefined. Frames
+containing a car are skipped.
+
+**Day versus night is not measured on the CCT-20 box annotations.** That file
+(`caltech_bboxes_20200316.json`) carries no timestamps, so the harness cannot
+tell a daylight frame from a night frame and falls back to treating every
+frame as night. The sample summary reports this as
+`day_night_measured: false`, the figure caption says so, and the figure title
+never claims "night frames" on that basis. If you add a timestamped
+annotation file, the night/day split becomes real and the per-stratum
+breakdown in `breakdown.json` becomes meaningful. Until then, treat the
+night/day numbers as a default rather than a result.
 
 **YOLOv8n is a COCO model.** It has no bobcat, opossum, raccoon or skunk
 class, so a per-class score would be meaningless. Every ground-truth box is

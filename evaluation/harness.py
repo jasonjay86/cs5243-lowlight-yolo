@@ -47,6 +47,45 @@ from evaluation.report import (
 )
 
 
+def _relative_weights_path(weights_path: str, repo_root) -> str:
+    """The weights path as it should appear in a figure caption.
+
+    An absolute path leaks the local username and the machine's directory
+    layout into an artefact that gets committed and shared. If the weights
+    live under the repo root, print the repo-relative path. Otherwise fall
+    back to the file name alone.
+    """
+    try:
+        return str(Path(weights_path).resolve().relative_to(
+            Path(repo_root).resolve()))
+    except (ValueError, OSError):
+        return Path(weights_path).name
+
+
+def _figure_title(n_day: int, n_total: int, n_night: int | None = None) -> str:
+    """The figure title, which must not misdescribe the sample.
+
+    The title names the corpus, not the lighting, unless the lighting is
+    actually known.
+
+    The CCT-20 box annotation file carries no timestamps, so the day/night
+    split cannot be measured from it: every frame falls back to "night".
+    Asserting "night frames" on that basis claims a measurement the data
+    does not support, and it is wrong the moment someone supplies real
+    timestamps and finds a mixed sample.
+
+    So the title only mentions lighting when the sample genuinely is all
+    one kind AND the classification was real rather than defaulted. The
+    caller passes `n_night` so the mixed case can be spelled out.
+    """
+    base = "Raw vs enhanced + YOLO on CCT-20"
+    if n_total and n_day == 0 and n_night is not None and n_night == n_total:
+        return base + " night frames"
+    if n_total and n_day == n_total:
+        return base + " day frames"
+    return base
+
+
 def _ground_truth_digest(frames) -> str:
     """Hash of the resolved ground-truth boxes, for the cache fingerprint."""
     import hashlib
@@ -90,6 +129,35 @@ def run_evaluation(cfg: RunConfig,
           f"{dataset.n_empty_from_labels} empty frames from the image-level file)")
 
     frames = select_frames(dataset, cfg.max_images, cfg.strata, cfg.seed)
+
+    # On a rescore, the cached predictions belong to a SPECIFIC frame list.
+    # Re-selecting the sample here could produce a different list (a
+    # changed seed, a changed stratification, a changed dataset), and the
+    # cached boxes would then be scored against the wrong frames. So the
+    # stored frame list is authoritative and the selection is replaced by it.
+    if skip_predict:
+        stored = rdir / "frames.json"
+        if not stored.is_file():
+            raise SystemExit(
+                f"ERROR: {stored} not found. A rescore needs the frame list "
+                f"from the original run."
+            )
+        _stored = json.loads(stored.read_text(encoding="utf-8"))
+        wanted = list(_stored.get("frames", []))
+        if not wanted:
+            raise SystemExit(f"ERROR: {stored} has no frame list.")
+        by_path = {f.path: f for f in dataset.frames}
+        missing = [p for p in wanted if p not in by_path]
+        if missing:
+            raise SystemExit(
+                f"ERROR: {len(missing)} frame(s) from the stored run are not "
+                f"in the dataset now, e.g. {missing[0]}. The dataset or the "
+                f"annotations changed since that run, so its cached "
+                f"predictions can no longer be scored."
+            )
+        frames = [by_path[p] for p in wanted]
+        print(f"[harness] rescore: using the {len(frames)} frames from "
+              f"{stored.name}")
 
     # Scale the ground-truth boxes into the on-disk pixel space. The CCT
     # benchmark images are downsized to a maximum of 1024 px per side while
@@ -153,7 +221,18 @@ def run_evaluation(cfg: RunConfig,
     print(f"[harness] fingerprint: {fingerprint}")
 
     # ---- 2. predict (cached) ---------------------------------------------
-    cache = PredictionCache(rdir, fingerprint)
+    # Caches written before the fingerprint scheme was split into
+    # "inference inputs" and "scoring inputs" are still valid: the
+    # detections did not change, only the hash that guards them. Accept
+    # the old scheme so a cache is not thrown away over a bookkeeping
+    # change.
+    legacy = []
+    try:
+        legacy.append(cfg.legacy_analysis_fingerprint(frame_ids, gt_digest))
+    except Exception:
+        pass
+
+    cache = PredictionCache(rdir, fingerprint, legacy_fingerprints=legacy)
     model = None
     if not skip_predict:
         for method in cfg.methods:
@@ -175,7 +254,9 @@ def run_evaluation(cfg: RunConfig,
     for method in cfg.methods:
         preds = cache.load(method)
         if preds is None:
-            print(f"[harness] SKIPPING {method}: no cached predictions")
+            why = cache.why_stale(method)
+            print(f"[harness] SKIPPING {method}: no cached predictions"
+                  + (f" ({why})" if why else ""))
             continue
         per_image = predictions_to_per_image(preds)
         gflops = None
@@ -197,12 +278,34 @@ def run_evaluation(cfg: RunConfig,
     n_empty = sample["n_empty"]
     n_boxes = sample["n_boxes"]
     dev = "GPU" if env_fingerprint().get("cuda_available") else "CPU"
+
+    # Print the weights path relative to the repo root. The absolute path
+    # leaks the local username and the machine's directory layout into a
+    # figure that gets committed and shared.
+    weights_path = _relative_weights_path(cfg.yolo_weights, repo_root)
+
     caption = (f"{len(frames)} frames ({len(frames) - n_empty} with animals, "
                f"{n_empty} empty), {n_boxes} ground-truth boxes. "
-               f"Same YOLO ({cfg.yolo_weights}), imgsz {cfg.imgsz}, "
+               f"Same YOLO ({weights_path}), imgsz {cfg.imgsz}, "
                f"P/R/FP at conf {cfg.conf}, IoU 0.5. "
                f"Latency measured on {dev}. CIs: paired bootstrap over frames "
                f"({cfg.bootstrap} resamples).")
+
+    # The day/night split is only meaningful if the timestamps are real.
+    # The CCT-20 box annotations carry none, so the split is a default.
+    if not sample.get("day_night_measured", False):
+        caption += (" Day/night was not measured: the annotation file has no "
+                    "timestamps, so the split is a default and is not "
+                    "reported here.")
+
+    # The title must not misdescribe the sample. The CCT-20 box
+    # annotations carry no timestamps, so the day/night counts come from a
+    # default rather than a measurement; only claim lighting when the
+    # sample really is one kind AND the classification was real.
+    title = _figure_title(sample.get("n_day", 0), len(frames),
+                          sample.get("n_night")
+                          if sample.get("day_night_measured", False)
+                          else None)
 
     if write_results:
         write_method_comparison(results, results_root / "method_comparison.csv")
@@ -210,8 +313,7 @@ def run_evaluation(cfg: RunConfig,
         write_latency(results, results_root / "latency.csv")
         write_sample_manifest(sample, results_root / "sample_manifest.csv")
         try:
-            draw_figure(results, all_stats, cfg.conf, caption,
-                        "Raw vs enhanced + YOLO on CCT-20 night frames",
+            draw_figure(results, all_stats, cfg.conf, caption, title,
                         results_root / "figures" / "comparison.png")
         except ImportError:
             # matplotlib is an optional dependency for the CSV outputs. The

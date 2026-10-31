@@ -5,8 +5,14 @@ Owner: Jason Johnson
 
 Run from the repo root:
 
+    python tests/test_evaluation.py
+
+or, if pytest is installed:
+
     python -m pytest tests/test_evaluation.py -q
-    (or: python tests/test_evaluation.py)
+
+This file has a standalone runner so it works without pytest, which is not
+in environment.yml.
 
 These are the checks that matter. A wrong AP implementation produces numbers
 that look perfectly reasonable and mean nothing, so the metric code is
@@ -473,14 +479,49 @@ def test_prediction_cache_round_trip(tmp_path=None):
 # Config
 # ----------------------------------------------------------------------
 def test_config_fingerprint_changes_with_inputs():
+    """The fingerprint must change when the DETECTIONS would change.
+
+    The fingerprint guards the cached predictions, so it must change for
+    anything that affects inference: the frame list, the ground truth,
+    the methods, the detector input size, the confidence floor.
+
+    It must NOT change for anything that only affects scoring: `conf` and
+    `bootstrap`. Those are applied when the cached detections are scored,
+    not when they are made, so a threshold sweep must not throw away the
+    inference work.
+    """
     cfg = RunConfig(images_dir="x", annotations="y", methods=["raw"], seed=0)
     f1 = cfg.analysis_fingerprint(["/a.jpg", "/b.jpg"])
     f2 = cfg.analysis_fingerprint(["/a.jpg", "/b.jpg"])
     assert f1 == f2, "same inputs must give the same fingerprint"
-    f3 = cfg.analysis_fingerprint(["/a.jpg"])
-    assert f1 != f3, "a different frame list must change the fingerprint"
-    cfg2 = RunConfig(images_dir="x", annotations="y", methods=["raw"], seed=1)
-    assert cfg.analysis_fingerprint(["/a.jpg"]) != cfg2.analysis_fingerprint(["/a.jpg"])
+
+    # A different frame list changes the detections.
+    assert f1 != cfg.analysis_fingerprint(["/a.jpg"])
+
+    # A different ground truth changes the scores, and the cache guard
+    # tracks it so a stale score can never be silently reused.
+    assert f1 != cfg.analysis_fingerprint(["/a.jpg", "/b.jpg"], "digest2")
+
+    # A different method set changes the detections.
+    cfg_more = RunConfig(images_dir="x", annotations="y",
+                         methods=["raw", "clahe"], seed=0)
+    assert f1 != cfg_more.analysis_fingerprint(["/a.jpg", "/b.jpg"])
+
+    # A different detector input size changes the detections.
+    cfg_small = RunConfig(images_dir="x", annotations="y", methods=["raw"],
+                          seed=0, imgsz=320)
+    assert f1 != cfg_small.analysis_fingerprint(["/a.jpg", "/b.jpg"])
+
+    # Scoring parameters must NOT change it.
+    cfg_conf = RunConfig(images_dir="x", annotations="y", methods=["raw"],
+                         seed=0, conf=0.7)
+    assert f1 == cfg_conf.analysis_fingerprint(["/a.jpg", "/b.jpg"]), (
+        "changing --conf must not invalidate the prediction cache")
+
+    cfg_boot = RunConfig(images_dir="x", annotations="y", methods=["raw"],
+                         seed=0, bootstrap=50)
+    assert f1 == cfg_boot.analysis_fingerprint(["/a.jpg", "/b.jpg"]), (
+        "changing --bootstrap must not invalidate the prediction cache")
 
 
 def test_config_yaml_round_trip(tmp_path=None):
