@@ -1,0 +1,287 @@
+{
+  "assignments_evaluated": 775200,
+  "balance_score": 6.643658272787121,
+  "diagnostics": {
+    "animal": 42314,
+    "boxes": 44254,
+    "empty": 3917,
+    "metadata_image_ids": 244180,
+    "missing_on_disk": 186633,
+    "skipped_car": 2555,
+    "unannotated_or_ambiguous": 8761,
+    "usable": 46231
+  },
+  "eligible_common_species": [
+    "bird",
+    "bobcat",
+    "cat",
+    "coyote",
+    "dog",
+    "opossum",
+    "rabbit",
+    "raccoon",
+    "rodent",
+    "skunk",
+    "squirrel"
+  ],
+  "night_definition": {
+    "end_hour": 6,
+    "start_hour": 19
+  },
+  "objective": {
+    "allocator": "exhaustive_exact_location_enumeration",
+    "common_species": {
+      "min_boxes": 50,
+      "min_locations": 3,
+      "min_total_boxes": 100,
+      "soft_min_boxes": 100
+    },
+    "exact_location_counts": {
+      "test": 3,
+      "train": 14,
+      "val": 3
+    },
+    "penalties": {
+      "common_species_lt_100": 4.0,
+      "common_species_lt_50": 12.0,
+      "common_species_zero": 30.0,
+      "train_species_zero": 50.0
+    },
+    "weights": {
+      "boxes": 3.0,
+      "empty": 3.0,
+      "images": 0.5,
+      "light": 1.0,
+      "species_proportion": 1.0
+    }
+  },
+  "overall": {
+    "n_boxes": 44254,
+    "n_day": 20378,
+    "n_empty": 3917,
+    "n_images": 46231,
+    "n_locations": 20,
+    "n_night": 25853,
+    "n_sequences": 19016,
+    "n_unknown_light": 0,
+    "species_boxes": {
+      "badger": 22,
+      "bird": 1521,
+      "bobcat": 4123,
+      "cat": 4233,
+      "coyote": 4587,
+      "deer": 179,
+      "dog": 2560,
+      "fox": 8,
+      "opossum": 11741,
+      "rabbit": 4772,
+      "raccoon": 6898,
+      "rodent": 469,
+      "skunk": 700,
+      "squirrel": 2441
+    },
+    "species_frames": {
+      "badger": 20,
+      "bird": 1040,
+      "bobcat": 4009,
+      "cat": 4103,
+      "coyote": 4337,
+      "deer": 174,
+      "dog": 2243,
+      "empty": 3917,
+      "fox": 8,
+      "opossum": 11677,
+      "rabbit": 4631,
+      "raccoon": 6489,
+      "rodent": 464,
+      "skunk": 694,
+      "squirrel": 2425
+    }
+  },
+  "source_paths": {
+    "annotations": "data/cct20/caltech_bboxes_20200316.json",
+    "image_labels": "data/cct20/caltech_camera_traps.json.zip",
+    "images": "data/cct20/eccv_18_all_images_sm"
+  },
+  "species_location_counts": {
+    "badger": 6,
+    "bird": 18,
+    "bobcat": 19,
+    "cat": 13,
+    "coyote": 18,
+    "deer": 2,
+    "dog": 16,
+    "fox": 2,
+    "opossum": 17,
+    "rabbit": 19,
+    "raccoon": 19,
+    "rodent": 10,
+    "skunk": 16,
+    "squirrel": 17
+  },
+  "splits": {
+    "test": {
+      "fraction_images": 0.1462438623434492,
+      "locations": [
+        "28",
+        "33",
+        "88"
+      ],
+      "n_boxes": 6431,
+      "n_day": 2811,
+      "n_empty": 601,
+      "n_images": 6761,
+      "n_locations": 3,
+      "n_night": 3950,
+      "n_sequences": 2695,
+      "n_unknown_light": 0,
+      "species_boxes": {
+        "badger": 3,
+        "bird": 314,
+        "bobcat": 335,
+        "cat": 478,
+        "coyote": 316,
+        "dog": 799,
+        "opossum": 1691,
+        "rabbit": 440,
+        "raccoon": 1279,
+        "rodent": 361,
+        "skunk": 111,
+        "squirrel": 304
+      },
+      "species_frames": {
+        "badger": 3,
+        "bird": 232,
+        "bobcat": 314,
+        "cat": 477,
+        "coyote": 316,
+        "dog": 723,
+        "empty": 601,
+        "opossum": 1691,
+        "rabbit": 440,
+        "raccoon": 1196,
+        "rodent": 356,
+        "skunk": 108,
+        "squirrel": 304
+      }
+    },
+    "train": {
+      "fraction_images": 0.6928035300988514,
+      "locations": [
+        "0",
+        "105",
+        "108",
+        "115",
+        "120",
+        "125",
+        "130",
+        "38",
+        "40",
+        "43",
+        "46",
+        "7",
+        "78",
+        "90"
+      ],
+      "n_boxes": 30419,
+      "n_day": 14350,
+      "n_empty": 2731,
+      "n_images": 32029,
+      "n_locations": 14,
+      "n_night": 17679,
+      "n_sequences": 13570,
+      "n_unknown_light": 0,
+      "species_boxes": {
+        "badger": 15,
+        "bird": 383,
+        "bobcat": 3456,
+        "cat": 3556,
+        "coyote": 4038,
+        "deer": 52,
+        "dog": 1256,
+        "fox": 8,
+        "opossum": 8979,
+        "rabbit": 3221,
+        "raccoon": 3178,
+        "rodent": 29,
+        "skunk": 472,
+        "squirrel": 1776
+      },
+      "species_frames": {
+        "badger": 15,
+        "bird": 266,
+        "bobcat": 3363,
+        "cat": 3427,
+        "coyote": 3788,
+        "deer": 51,
+        "dog": 1132,
+        "empty": 2731,
+        "fox": 8,
+        "opossum": 8919,
+        "rabbit": 3088,
+        "raccoon": 2982,
+        "rodent": 29,
+        "skunk": 469,
+        "squirrel": 1761
+      }
+    },
+    "val": {
+      "fraction_images": 0.16095260755769938,
+      "locations": [
+        "100",
+        "51",
+        "61"
+      ],
+      "n_boxes": 7404,
+      "n_day": 3217,
+      "n_empty": 585,
+      "n_images": 7441,
+      "n_locations": 3,
+      "n_night": 4224,
+      "n_sequences": 2751,
+      "n_unknown_light": 0,
+      "species_boxes": {
+        "badger": 4,
+        "bird": 824,
+        "bobcat": 332,
+        "cat": 199,
+        "coyote": 233,
+        "deer": 127,
+        "dog": 505,
+        "opossum": 1071,
+        "rabbit": 1111,
+        "raccoon": 2441,
+        "rodent": 79,
+        "skunk": 117,
+        "squirrel": 361
+      },
+      "species_frames": {
+        "badger": 2,
+        "bird": 542,
+        "bobcat": 332,
+        "cat": 199,
+        "coyote": 233,
+        "deer": 123,
+        "dog": 388,
+        "empty": 585,
+        "opossum": 1067,
+        "rabbit": 1103,
+        "raccoon": 2311,
+        "rodent": 79,
+        "skunk": 117,
+        "squirrel": 360
+      }
+    }
+  },
+  "validation": {
+    "duplicate_images": 0,
+    "leaked_locations": 0,
+    "leaked_sequences": 0,
+    "location_counts": {
+      "test": 3,
+      "train": 14,
+      "val": 3
+    }
+  },
+  "version": 3
+}
