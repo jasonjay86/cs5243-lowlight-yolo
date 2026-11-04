@@ -1,0 +1,45 @@
+#!/bin/bash
+#SBATCH --job-name=yolo-finetune
+#SBATCH --error=logs/slurm-%j-yolofinetune.err
+#SBATCH --output=logs/slurm-%j-yolofinetune.out
+#SBATCH --partition=gpu1v100,gpu2v100,gpu4v100
+#SBATCH --time=72:00:00
+#SBATCH --oversubscribe
+#SBATCH -N 1 #specifies how many compute nodes we want to use
+#SBATCH -n 40 #specifies how many CPU cores we want to use
+#SBATCH --mail-type=END
+#SBATCH --mail-user=richard.zanni@utsa.edu
+
+scontrol show job $SLURM_JOBID > info.$SLURM_JOBID
+
+module load anaconda3
+
+conda activate cs5243-lowlight-cuda
+
+echo #######################################
+date
+echo #######################################
+
+cd /work/ftk939/opt/MSinAI/Computer-Vision/LowLightDetectionProject/cs5243-lowlight-yolo
+yolo detect train \
+  model=detection/yolov8n.pt \
+  data=data/cct20_yolo/dataset.yaml \
+  epochs=100 \
+  imgsz=640 \
+  batch=64 \
+  workers=8 \
+  device=0 \
+  optimizer=AdamW \
+  lr0=0.001 \
+  weight_decay=0.0005 \
+  cos_lr=True \
+  patience=20 \
+  close_mosaic=10 \
+  seed=42 \
+  deterministic=True \
+  project=experiments/yolo_finetune \
+  name=yolov8n_cct_animal_640
+
+echo #######################################
+date
+echo #######################################

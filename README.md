@@ -50,3 +50,64 @@ See `CONTRIBUTING.md` for branches, commit-message convention (`<firstname>: ...
 ## Data
 
 Datasets are not in the repo. See [`data/README.md`](data/README.md) for download links and expected directory layout.
+
+
+## CCT-20 YOLO Fine-Tuning
+
+The project includes a location-disjoint CCT-20 split for fine-tuning
+YOLO as a single-class animal detector.
+
+### Prepare the dataset
+
+```bash
+python scripts/prepare_yolo_dataset.py \
+  --manifest data/cct20_splits/split_manifest.csv \
+  --annotations data/cct20/caltech_bboxes_20200316.json \
+  --output data/cct20_yolo
+```
+
+The generated YOLO dataset uses one class:
+
+```text
+0 = animal
+```
+
+The preparation step produced:
+
+- 32,029 training images / 30,419 boxes
+- 7,441 validation images / 7,404 boxes
+- 6,761 test images / 6,431 boxes
+- 0 box-count mismatches
+
+The generated `data/cct20_yolo` directory is not committed and can be
+reconstructed from the split manifest and source annotations.
+
+### Fine-tune YOLOv8n
+
+Submit:
+
+'scripts/sbatch-yolo-finetuning'
+
+The current YOLOv8n experiment uses:
+
+- image size: 640
+- batch size: 64
+- optimizer: AdamW
+- initial learning rate: 0.001
+- weight decay: 0.0005
+- cosine learning-rate schedule
+- early-stopping patience: 20
+- seed: 42
+
+Training stopped after 61 epochs. The best validation result occurred at
+epoch 41.
+
+Validation of the selected `best.pt` checkpoint:
+
+- Precision: 0.922
+- Recall: 0.786
+- mAP50: 0.858
+- mAP50-95: 0.557
+
+The held-out test locations must not be used for model or threshold
+selection.
