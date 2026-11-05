@@ -1,0 +1,81 @@
+#!/bin/bash
+#SBATCH --job-name=yolo-finetune-clahe
+#SBATCH --error=logs/slurm-%j-yolofinetune-clahe.err
+#SBATCH --output=logs/slurm-%j-yolofinetune-clahe.out
+#SBATCH --partition=gpu1v100,gpu2v100,gpu4v100
+#SBATCH --time=72:00:00
+#SBATCH --oversubscribe
+#SBATCH -N 1 #specifies how many compute nodes we want to use
+#SBATCH -n 40 #specifies how many CPU cores we want to use
+#SBATCH --mail-type=END
+#SBATCH --mail-user=<YOUR_UTSA_EMAIL>
+
+# CLAHE counterpart of scripts/sbatch-yolo-finetuning (the raw baseline).
+# It is identical to the raw job except for:
+#   1. the CLAHE-enhanced dataset is built first (steps 1-2 below), and
+#   2. data= and name= at the end.
+# Every training setting (seed, epochs, batch, optimizer, ...) is the same, so
+# the raw and CLAHE models differ only in their input pixels.
+#
+# Before submitting:  mkdir -p logs   (the #SBATCH --output paths need it)
+
+set -euo pipefail
+
+scontrol show job $SLURM_JOBID > info.$SLURM_JOBID
+
+module load anaconda3
+
+conda activate cs5243-lowlight-cuda
+
+echo #######################################
+date
+echo #######################################
+
+# Repo checkout on ARC (must contain scripts/enhance_dataset.py, i.e. the PR
+# merged, and the CCT-20 images + annotations at the paths below).
+cd <PATH_TO_REPO_ON_ARC>/cs5243-lowlight-yolo
+
+IMAGES_DIR=data/cct20/eccv_18_all_images_sm   # only used by the manifest paths
+ANNOTATIONS=data/cct20/caltech_bboxes_20200316.json
+RAW_MANIFEST=data/cct20_splits/split_manifest.csv
+CLAHE_DIR=data/cct20_clahe
+CLAHE_YOLO=data/cct20_yolo_clahe
+
+# 1. Enhance every manifest image with CLAHE (CPU, resumable, ~minutes).
+python scripts/enhance_dataset.py \
+  --manifest "$RAW_MANIFEST" \
+  --method clahe \
+  --output "$CLAHE_DIR" \
+  --workers 32
+
+# 2. Build the YOLO dataset from the enhanced manifest (skipped if it exists).
+if [ ! -f "$CLAHE_YOLO/dataset.yaml" ]; then
+  python scripts/prepare_yolo_dataset.py \
+    --manifest "$CLAHE_DIR/split_manifest.csv" \
+    --annotations "$ANNOTATIONS" \
+    --output "$CLAHE_YOLO"
+fi
+
+# 3. Fine-tune. Same settings as the raw run; only data= and name= differ.
+yolo detect train \
+  model=detection/yolov8n.pt \
+  data=$CLAHE_YOLO/dataset.yaml \
+  epochs=100 \
+  imgsz=640 \
+  batch=64 \
+  workers=8 \
+  device=0 \
+  optimizer=AdamW \
+  lr0=0.001 \
+  weight_decay=0.0005 \
+  cos_lr=True \
+  patience=20 \
+  close_mosaic=10 \
+  seed=42 \
+  deterministic=True \
+  project=experiments/yolo_finetune \
+  name=yolov8n_cct_animal_640_clahe
+
+echo #######################################
+date
+echo #######################################
