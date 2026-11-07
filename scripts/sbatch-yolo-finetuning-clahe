@@ -11,11 +11,17 @@
 #SBATCH --mail-user=<YOUR_UTSA_EMAIL>
 
 # CLAHE counterpart of scripts/sbatch-yolo-finetuning (the raw baseline).
-# It is identical to the raw job except for:
-#   1. the CLAHE-enhanced dataset is built first (steps 1-2 below), and
-#   2. data= and name= at the end.
-# Every training setting (seed, epochs, batch, optimizer, ...) is the same, so
-# the raw and CLAHE models differ only in their input pixels.
+# Pipeline, in order:
+#   0. split manifest   (create_cct_split.py, ONLY if the frozen manifest is missing)
+#   1. enhance images   (enhance_dataset.py)
+#   2. YOLO dataset     (prepare_yolo_dataset.py)
+#   3. fine-tune        (yolo detect train; identical settings to the raw job,
+#                        only data= and name= differ)
+#
+# The committed data/cct20_splits/split_manifest.csv is the FROZEN split used for
+# the raw baseline. This script never overwrites it. Set VERIFY_SPLIT=1 to also
+# regenerate the split into a temporary file and check it is byte-identical
+# (slow: exhaustive search over 775,200 location assignments).
 #
 # Before submitting:  mkdir -p logs   (the #SBATCH --output paths need it)
 
@@ -35,13 +41,43 @@ echo #######################################
 # merged, and the CCT-20 images + annotations at the paths below).
 cd <PATH_TO_REPO_ON_ARC>/cs5243-lowlight-yolo
 
-IMAGES_DIR=data/cct20/eccv_18_all_images_sm   # only used by the manifest paths
+IMAGES_DIR=data/cct20/eccv_18_all_images_sm
 ANNOTATIONS=data/cct20/caltech_bboxes_20200316.json
+IMAGE_LABELS=data/cct20/caltech_camera_traps.json.zip
 RAW_MANIFEST=data/cct20_splits/split_manifest.csv
 CLAHE_DIR=data/cct20_clahe
 CLAHE_YOLO=data/cct20_yolo_clahe
 
-# 1. Enhance every manifest image with CLAHE (CPU, resumable, ~minutes).
+# 0. Split manifest. Use the committed (frozen) one if present; generate it only
+#    if it is missing. Never pass --overwrite here.
+if [ ! -f "$RAW_MANIFEST" ]; then
+  echo "[pipeline] $RAW_MANIFEST not found; generating with create_cct_split.py"
+  python scripts/create_cct_split.py \
+    --images "$IMAGES_DIR" \
+    --annotations "$ANNOTATIONS" \
+    --image-labels "$IMAGE_LABELS" \
+    --output "$RAW_MANIFEST"
+else
+  echo "[pipeline] using existing frozen split: $RAW_MANIFEST"
+  if [ "${VERIFY_SPLIT:-0}" = "1" ]; then
+    CHECK=data/cct20_splits/split_manifest_verify_$SLURM_JOBID.csv
+    python scripts/create_cct_split.py \
+      --images "$IMAGES_DIR" \
+      --annotations "$ANNOTATIONS" \
+      --image-labels "$IMAGE_LABELS" \
+      --output "$CHECK"
+    if cmp -s "$RAW_MANIFEST" "$CHECK"; then
+      echo "[pipeline] split reproduces exactly: identical to the frozen manifest"
+    else
+      echo "[pipeline] WARNING: regenerated split DIFFERS from the frozen manifest" >&2
+      echo "[pipeline] stopping; do not train until the group has reviewed this" >&2
+      exit 1
+    fi
+    rm -f "$CHECK" "${CHECK%.csv}.summary.json"
+  fi
+fi
+
+# 1. Enhance every manifest image with CLAHE (CPU, resumable).
 python scripts/enhance_dataset.py \
   --manifest "$RAW_MANIFEST" \
   --method clahe \
@@ -49,11 +85,14 @@ python scripts/enhance_dataset.py \
   --workers 32
 
 # 2. Build the YOLO dataset from the enhanced manifest (skipped if it exists).
+#    --absolute-yaml-path: Ultralytics resolves a relative path from the launch
+#    directory, not from the yaml file, so a relative path breaks training.
 if [ ! -f "$CLAHE_YOLO/dataset.yaml" ]; then
   python scripts/prepare_yolo_dataset.py \
     --manifest "$CLAHE_DIR/split_manifest.csv" \
     --annotations "$ANNOTATIONS" \
-    --output "$CLAHE_YOLO"
+    --output "$CLAHE_YOLO" \
+    --absolute-yaml-path
 fi
 
 # 3. Fine-tune. Same settings as the raw run; only data= and name= differ.
