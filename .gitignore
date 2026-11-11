@@ -148,3 +148,10 @@ experiments/yolo_compare/run-02/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_o
 # Evaluation run artefacts: numbers are small and worth keeping, figures are
 # regenerable from grid.csv with --redraw.
 experiments/*/*.png
+
+# Evaluation run artefacts: numbers stay, figures regenerate from grid.csv.
+experiments/*/*.png
+
+# Slurm job logs
+logs/
+info.*
