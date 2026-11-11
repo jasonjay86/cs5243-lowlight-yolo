@@ -31,6 +31,8 @@ from evaluation.cache import PredictionCache
 from evaluation.config import RunConfig, env_fingerprint, git_sha, run_dir
 from evaluation.dataset import (
     build_dataset,
+    filter_by_split,
+    load_split_map,
     scale_boxes_to_disk,
     select_frames,
     summarise_sample,
@@ -128,7 +130,30 @@ def run_evaluation(cfg: RunConfig,
           f"({dataset.n_skipped_car} skipped for containing a car, "
           f"{dataset.n_empty_from_labels} empty frames from the image-level file)")
 
-    frames = select_frames(dataset, cfg.max_images, cfg.strata, cfg.seed)
+    # A frozen split REPLACES stratified sampling. The test set is every frame
+    # in that split, not a sample of it, so the numbers describe the held-out
+    # locations rather than a subset of them. Sampling a held-out split would
+    # throw away most of the evidence for no gain.
+    if cfg.split:
+        if not cfg.split_manifest:
+            raise SystemExit(
+                "ERROR: split is set but split_manifest is empty. The split "
+                "must come from the frozen split_manifest.csv."
+            )
+        split_map = load_split_map(Path(cfg.split_manifest))
+        before = len(dataset.frames)
+        split_frames = filter_by_split(dataset.frames, split_map, cfg.split)
+        if not split_frames:
+            raise SystemExit(
+                f"ERROR: no frames matched split={cfg.split!r} in "
+                f"{cfg.split_manifest} (loaded {before} frames). Check that "
+                f"images_dir and the manifest describe the same image set."
+            )
+        print(f"[harness] split={cfg.split}: kept {len(split_frames)}/{before} "
+              f"frames named in {cfg.split_manifest}")
+        frames = split_frames
+    else:
+        frames = select_frames(dataset, cfg.max_images, cfg.strata, cfg.seed)
 
     # On a rescore, the cached predictions belong to a SPECIFIC frame list.
     # Re-selecting the sample here could produce a different list (a
@@ -244,7 +269,8 @@ def run_evaluation(cfg: RunConfig,
                 model = _load_model(cfg.yolo_weights, cfg.device)
             print(f"[harness] {method}: running on {len(frames)} frames")
             preds = run_method(method, frames, model, cfg.imgsz, cfg.conf_floor,
-                               repo_root, cfg.device, cfg.yolo_weights)
+                               repo_root, cfg.device, cfg.yolo_weights,
+                               pixel_source=cfg.pixel_source)
             cache.save(preds)
             print(f"[harness] {method}: {preds.n_detections} detections, "
                   f"{preds.enh_ms:.1f} ms/img enhance, {preds.yolo_ms:.1f} ms/img YOLO")

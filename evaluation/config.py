@@ -66,10 +66,40 @@ class RunConfig:
     images_dir: str = ""
     annotations: str = ""
     image_labels: str | None = None
+    # Frozen split from scripts/create_cct_split.py. Required only when
+    # `split` is set. The split is location-disjoint, so it must be reused
+    # rather than re-derived: a per-condition split would make the
+    # conditions incomparable.
+    split_manifest: str = ""
+    split: str = ""              # "" = stratified sample; "test" = every
+                                 # held-out frame, no sampling
 
     # ---- what to run ------------------------------------------------------
     methods: list[str] = field(default_factory=lambda: ["raw", "clahe", "snr-aware"])
     max_images: int = 500
+    # Where the test pixels come from.
+    #   "on_the_fly"  load the raw frame and apply the enhancement in memory
+    #                 (the zero-shot arm).
+    #   "precomputed" load an already-enhanced JPEG and apply nothing, because
+    #                 the enhancement already happened on disk. Re-applying it
+    #                 would double-enhance and invalidate the comparison.
+    # Point `images_dir` at the enhanced image directory when using this.
+    pixel_source: str = "on_the_fly"
+
+    # ---- fine-tuned grid --------------------------------------------------
+    # Both maps are name -> repo-relative-or-absolute path. Empty means the
+    # single-checkpoint / single-image-dir behaviour above, which is how the
+    # zero-shot arm runs.
+    #
+    # conditions: condition name -> that condition's split_manifest.csv. The
+    #   manifest supplies the frozen split AND the per-frame image path, so
+    #   each condition can hold its enhanced pixels somewhere different.
+    # weights: condition name -> fine-tuned checkpoint.
+    conditions: dict[str, str] = field(default_factory=dict)
+    weights: dict[str, str] = field(default_factory=dict)
+    # "minimal" scores the baseline row and the diagonal (2N-1 cells);
+    # "full" scores every (model x condition) cell. See evaluation/cells.py.
+    cell_mode: str = "minimal"
 
     # ---- detector settings ------------------------------------------------
     imgsz: int = 640
@@ -103,10 +133,19 @@ class RunConfig:
         )
         out.repo_root = str(root)
         for field_name in ("images_dir", "annotations", "image_labels",
-                           "yolo_weights"):
+                           "yolo_weights", "split_manifest"):
             val = getattr(out, field_name)
             if val and not Path(val).is_absolute():
                 setattr(out, field_name, str(root / val))
+        # The grid maps hold paths as well, and they drive which files get
+        # read, so they must be resolved too.
+        for map_name in ("conditions", "weights"):
+            resolved_map: dict[str, str] = {}
+            for name, p in getattr(out, map_name).items():
+                if p and not Path(p).is_absolute():
+                    p = str(root / p)
+                resolved_map[name] = p
+            setattr(out, map_name, resolved_map)
         if not out.run_id:
             out.run_id = default_run_id(out)
         return out
@@ -158,13 +197,36 @@ class RunConfig:
         }
         for label, p in (("annotations", self.annotations),
                          ("image_labels", self.image_labels),
-                         ("yolo_weights_file", self.yolo_weights)):
+                         ("yolo_weights_file", self.yolo_weights),
+                         ("split_manifest", self.split_manifest)):
             if p:
                 path = Path(p)
                 if path.is_file():
                     inputs[label] = file_sha256(path)
                 elif label == "yolo_weights_file":
                     inputs[label] = "MISSING"
+        # Added for the fine-tuned arm. Only recorded when non-default so a
+        # cache written before these fields existed keeps the SAME hash and
+        # stays valid. Keys are appended last, and the hash is order
+        # sensitive, so existing runs are unaffected.
+        if self.split:
+            inputs["split"] = self.split
+        if self.pixel_source != "on_the_fly":
+            inputs["pixel_source"] = self.pixel_source
+        # Fine-tuned grid: which manifests and which checkpoints are read
+        # changes the detections, so both are hashed by name. An empty map
+        # adds nothing, which keeps the zero-shot fingerprint byte-identical.
+        for label, mapping in (("conditions", self.conditions),
+                               ("weights", self.weights)):
+            if not mapping:
+                continue
+            hashed: dict[str, str] = {}
+            for name, p in sorted(mapping.items()):
+                path = Path(p) if p else None
+                hashed[name] = (file_sha256(path)
+                                if path is not None and path.is_file()
+                                else "MISSING")
+            inputs[label] = hashed
         inputs["env"] = env_fingerprint()
         return inputs
 
