@@ -1,0 +1,120 @@
+#!/bin/bash
+#SBATCH --job-name=yolo-finetune-snr
+#SBATCH --error=logs/slurm-%j-yolofinetune-snr.err
+#SBATCH --output=logs/slurm-%j-yolofinetune-snr.out
+#SBATCH --partition=gpu1v100,gpu2v100,gpu4v100
+#SBATCH --time=72:00:00
+#SBATCH --oversubscribe
+#SBATCH -N 1 #specifies how many compute nodes we want to use
+#SBATCH -n 40 #specifies how many CPU cores we want to use
+#SBATCH --mail-type=END
+#SBATCH --mail-user=jason.johnson2@my.utsa.edu
+
+# SNR-Aware counterpart of scripts/sbatch-yolo-finetuning (the raw baseline).
+# Pipeline, in order:
+#   0. split manifest   (create_cct_split.py, ONLY if the frozen manifest is missing)
+#   1. enhance images   (enhance_dataset.py)
+#   2. YOLO dataset     (prepare_yolo_dataset.py)
+#   3. fine-tune        (yolo detect train; identical settings to the raw job,
+#                        only data= and name= differ)
+#
+# The committed data/cct20_splits/split_manifest.csv is the FROZEN split used for
+# the raw baseline. This script never overwrites it. Set VERIFY_SPLIT=1 to also
+# regenerate the split into a temporary file and check it is byte-identical
+# (slow: exhaustive search over 775,200 location assignments).
+#
+# Before submitting:  mkdir -p logs   (the #SBATCH --output paths need it)
+
+set -euo pipefail
+
+scontrol show job $SLURM_JOBID > info.$SLURM_JOBID
+
+module load anaconda3
+
+conda activate cs5243-lowlight-cuda
+
+echo #######################################
+date
+echo #######################################
+
+# Repo checkout on ARC (must contain scripts/enhance_dataset.py, i.e. the PR
+# merged, and the CCT-20 images + annotations at the paths below).
+cd /work/gsh998/cs5243-lowlight-yolo
+
+IMAGES_DIR=data/cct20/eccv_18_all_images_sm
+ANNOTATIONS=data/cct20/caltech_bboxes_20200316.json
+IMAGE_LABELS=data/cct20/caltech_camera_traps.json.zip
+RAW_MANIFEST=data/cct20_splits/split_manifest.csv
+SNR_DIR=data/cct20_snr
+SNR_YOLO=data/cct20_yolo_snr
+
+# 0. Split manifest. Use the committed (frozen) one if present; generate it only
+#    if it is missing. Never pass --overwrite here.
+if [ ! -f "$RAW_MANIFEST" ]; then
+  echo "[pipeline] $RAW_MANIFEST not found; generating with create_cct_split.py"
+  python scripts/create_cct_split.py \
+    --images "$IMAGES_DIR" \
+    --annotations "$ANNOTATIONS" \
+    --image-labels "$IMAGE_LABELS" \
+    --output "$RAW_MANIFEST"
+else
+  echo "[pipeline] using existing frozen split: $RAW_MANIFEST"
+  if [ "${VERIFY_SPLIT:-0}" = "1" ]; then
+    CHECK=data/cct20_splits/split_manifest_verify_$SLURM_JOBID.csv
+    python scripts/create_cct_split.py \
+      --images "$IMAGES_DIR" \
+      --annotations "$ANNOTATIONS" \
+      --image-labels "$IMAGE_LABELS" \
+      --output "$CHECK"
+    if cmp -s "$RAW_MANIFEST" "$CHECK"; then
+      echo "[pipeline] split reproduces exactly: identical to the frozen manifest"
+    else
+      echo "[pipeline] WARNING: regenerated split DIFFERS from the frozen manifest" >&2
+      echo "[pipeline] stopping; do not train until the group has reviewed this" >&2
+      exit 1
+    fi
+    rm -f "$CHECK" "${CHECK%.csv}.summary.json"
+  fi
+fi
+
+# 1. Enhance every manifest image with SNR-Aware (GPU, resumable).
+python scripts/enhance_dataset.py \
+  --manifest "$RAW_MANIFEST" \
+  --method snr-aware \
+  --output "$SNR_DIR" \
+  --workers 1 --device cuda
+
+# 2. Build the YOLO dataset from the enhanced manifest (skipped if it exists).
+#    --absolute-yaml-path: Ultralytics resolves a relative path from the launch
+#    directory, not from the yaml file, so a relative path breaks training.
+if [ ! -f "$SNR_YOLO/dataset.yaml" ]; then
+  python scripts/prepare_yolo_dataset.py \
+    --manifest "$SNR_DIR/split_manifest.csv" \
+    --annotations "$ANNOTATIONS" \
+    --output "$SNR_YOLO" \
+    --absolute-yaml-path
+fi
+
+# 3. Fine-tune. Same settings as the raw run; only data= and name= differ.
+yolo detect train \
+  model=detection/yolov8n.pt \
+  data=$SNR_YOLO/dataset.yaml \
+  epochs=100 \
+  imgsz=640 \
+  batch=64 \
+  workers=8 \
+  device=0 \
+  optimizer=AdamW \
+  lr0=0.001 \
+  weight_decay=0.0005 \
+  cos_lr=True \
+  patience=20 \
+  close_mosaic=10 \
+  seed=42 \
+  deterministic=True \
+  project=experiments/yolo_finetune \
+  name=yolov8n_cct_animal_640_snr
+
+echo #######################################
+date
+echo #######################################
