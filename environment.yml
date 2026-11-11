@@ -25,6 +25,9 @@ dependencies:
       # for CUDA 13). On a machine without a GPU you can instead install the CPU
       # wheel after creating the env (index not verified from the PR sandbox):
       #   pip install torch==2.14.1 torchvision==0.29.1 --index-url https://download.pytorch.org/whl/cpu
+      # NOTE: on ARC V100 nodes (Volta, CC 7.0) the default CUDA 13 wheel has no
+      # kernels and fails at the first kernel launch. Build the env with
+      #   bash scripts/setup_arc_env.sh
       - torch==2.14.1
       - torchvision==0.29.1
       - ultralytics==8.4.173 # YOLOv8 (detection/yolo_detector.py)
