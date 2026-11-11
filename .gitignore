@@ -144,3 +144,9 @@ experiments/yolo_compare/run-02/snr_aware/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_i
 experiments/yolo_compare/run-02/snr_aware/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_out.png
 experiments/yolo_compare/run-02/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_in.png
 experiments/yolo_compare/run-02/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_out.png
+
+# Slurm logs
+logs/
+
+# Ultralytics fine-tuning output
+experiments/yolo_finetune/
