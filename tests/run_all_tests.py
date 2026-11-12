@@ -33,6 +33,10 @@ TEST_FILES = [
     ("test_figure_layout.py", "passed"),
     ("test_rescore.py", "passed"),
     ("test_rescore_e2e.py", "PASSED"),
+    ("test_split_and_pixel_source.py", "passed"),
+    ("test_cells.py", "passed"),
+    ("test_grid.py", "passed"),
+    ("test_grid_figure.py", "passed"),
 ]
 
 OPTIONAL_TESTS = [

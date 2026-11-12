@@ -82,15 +82,26 @@ def _get_enhancement(method: str, repo_root: Path):
 def run_method(method: str, frames, model, imgsz: int, conf_floor: float,
                repo_root: Path, device: str = "cpu",
                yolo_weights: str = "detection/yolov8n.pt",
-               progress_every: int = 25) -> MethodPredictions:
+               progress_every: int = 25,
+               pixel_source: str = "on_the_fly") -> MethodPredictions:
     """Enhance every frame, detect on the result, and return the detections.
 
+    `pixel_source` decides whether the enhancement runs at all:
+
+      * "on_the_fly"  the frames are raw and the enhancement is applied here.
+      * "precomputed" the frames were already enhanced on disk by
+        scripts/enhance_dataset.py. Applying the enhancement again would
+        double-enhance the pixels and quietly invalidate the comparison, so
+        the image is passed to the detector unchanged.
+
     Latency figures skip the first frame, which absorbs model-load and
-    first-call warm-up.
+    first-call warm-up. For precomputed pixels the enhancement latency is
+    reported as 0, because no enhancement happened in this process.
     """
     import cv2
 
-    enh = _get_enhancement(method, repo_root)
+    enhance = pixel_source == "on_the_fly"
+    enh = _get_enhancement(method, repo_root) if enhance else None
     all_boxes, all_confs, all_classes, all_img = [], [], [], []
     enh_times, yolo_times = [], []
 
@@ -100,9 +111,12 @@ def run_method(method: str, frames, model, imgsz: int, conf_floor: float,
             print(f"[predict] {method}: could not read {fr.path}, skipping")
             continue
 
-        t0 = time.perf_counter()
-        out = enh.enhance(img)
-        enh_times.append((time.perf_counter() - t0) * 1000)
+        if enhance:
+            t0 = time.perf_counter()
+            out = enh.enhance(img)
+            enh_times.append((time.perf_counter() - t0) * 1000)
+        else:
+            out = img
 
         t0 = time.perf_counter()
         res = model(out, conf=conf_floor, imgsz=imgsz, verbose=False)[0]

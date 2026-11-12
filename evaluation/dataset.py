@@ -28,6 +28,7 @@ So the sample is stratified on: empty vs animal, night vs day, and species.
 """
 from __future__ import annotations
 
+import csv
 import json
 import random
 import zipfile
@@ -241,6 +242,99 @@ def build_dataset(
     return Dataset(frames=frames, categories=cats,
                    n_images_total=len(data["images"]),
                    n_skipped_car=n_car, n_empty_from_labels=n_extra)
+
+
+# ----------------------------------------------------------------------
+# Frozen split manifest
+# ----------------------------------------------------------------------
+def load_split_map(path: Path) -> dict[str, str]:
+    """Read a frozen ``split_manifest.csv`` as ``image_id -> split``.
+
+    The manifest is produced once by ``scripts/create_cct_split.py`` and is
+    location-disjoint: whole camera locations go to exactly one split, so a
+    test frame is never from a location the model was trained on.
+
+    Evaluation must REUSE this split, never re-derive it. A per-condition
+    split would put different frames in each condition's test set and make
+    the conditions incomparable, which is the one thing the whole comparison
+    depends on.
+    """
+    with Path(path).open("r", newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        names = set(reader.fieldnames or [])
+        missing = {"image_id", "split"} - names
+        if missing:
+            raise SystemExit(
+                f"ERROR: split manifest missing columns: {sorted(missing)}")
+        return {(row.get("image_id") or "").strip():
+                (row.get("split") or "").strip() for row in reader}
+
+
+def load_manifest_paths(path: Path) -> dict[str, str]:
+    """Read a frozen manifest as ``image_id -> image_path``.
+
+    The manifest is the only file that knows both the split and where that
+    condition's pixels live, so the grid resolves each condition's images
+    through this rather than by guessing directory names.
+    """
+    with Path(path).open("r", newline="", encoding="utf-8") as fh:
+        reader = csv.DictReader(fh)
+        names = set(reader.fieldnames or [])
+        missing = {"image_id", "image_path"} - names
+        if missing:
+            raise SystemExit(
+                f"ERROR: split manifest missing columns: {sorted(missing)}")
+        return {(row.get("image_id") or "").strip():
+                (row.get("image_path") or "").strip() for row in reader}
+
+
+def filter_by_split(frames: list[Frame], split_map: dict[str, str],
+                    split: str) -> list[Frame]:
+    """Keep only frames whose manifest row matches ``split``.
+
+    An empty ``split`` returns every frame unchanged, so the existing
+    sample-based zero-shot runs are untouched by this feature.
+    """
+    if not split:
+        return list(frames)
+    return [f for f in frames if split_map.get(f.image_id) == split]
+
+
+def resolve_frame_path(image_path: str, images_dir: Path | None,
+                       repo_root: Path) -> Path | None:
+    """Resolve one manifest ``image_path`` to a file that exists on disk.
+
+    Manifests mix two styles and both must work:
+
+      * the frozen raw manifest stores REPO-RELATIVE paths
+        (``data/cct20/eccv_18_all_images_sm/<id>.jpg``)
+      * ``enhance_dataset.py`` writes ABSOLUTE paths that include the
+        producing user's ``/work`` tree
+        (``/work/<user>/.../data/cct20_snr/images/<id>.jpg``)
+
+    The absolute form is the dangerous one: it is correct for whoever
+    generated it and wrong for everyone else. So an absolute path is used
+    when it exists, and otherwise the file is looked up by name inside
+    ``images_dir``. That keeps one person's manifest usable in another
+    person's checkout without editing CSVs.
+
+    Returns None when the frame cannot be found, so the caller can count
+    the loss instead of crashing.
+    """
+    raw = Path(image_path) if image_path else None
+    if raw is None:
+        return None
+
+    first = raw if raw.is_absolute() else (repo_root / raw)
+    if first.is_file():
+        return first
+
+    if images_dir is not None:
+        alt = Path(images_dir) / raw.name
+        if alt.is_file():
+            return alt
+
+    return None
 
 
 # ----------------------------------------------------------------------

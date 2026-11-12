@@ -53,6 +53,31 @@ from evaluation.config import RunConfig, StrataConfig  # noqa: E402
 from evaluation.harness import run_evaluation          # noqa: E402
 
 
+def _flatten(groups: list[list[str]]) -> list[str]:
+    """Flatten repeated nargs="+" flags into one list."""
+    return [item for group in groups for item in group]
+
+
+def _parse_pairs(items: list[str], flag: str) -> dict[str, str]:
+    """Parse repeated ``NAME=PATH`` flags into an order-preserving dict.
+
+    Order matters: the first name is the baseline every delta is measured
+    against.
+    """
+    out: dict[str, str] = {}
+    for item in items:
+        if "=" not in item:
+            raise SystemExit(f"ERROR: {flag} expects NAME=PATH, got {item!r}")
+        name, path = item.split("=", 1)
+        name, path = name.strip(), path.strip()
+        if not name or not path:
+            raise SystemExit(f"ERROR: {flag} expects NAME=PATH, got {item!r}")
+        if name in out:
+            raise SystemExit(f"ERROR: {flag} given twice for {name!r}")
+        out[name] = path
+    return out
+
+
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
         description=__doc__,
@@ -63,6 +88,32 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--image-labels",
                     help="LILA image-level annotations (JSON or .json.zip); "
                          "the only source of real empty frames")
+    ap.add_argument("--split-manifest",
+                    help="frozen split_manifest.csv from create_cct_split.py; "
+                         "required when --split is used")
+    ap.add_argument("--split",
+                    help="score EVERY frame in this split instead of a "
+                         "stratified sample (e.g. 'test'). Held-out "
+                         "evaluation of fine-tuned checkpoints uses this.")
+    ap.add_argument("--pixel-source", default=None,
+                    choices=["on_the_fly", "precomputed"],
+                    help="on_the_fly: raw frames + enhancement here. "
+                         "precomputed: frames already enhanced on disk "
+                         "(point --images at the enhanced folder); the "
+                         "enhancement is NOT re-applied")
+    ap.add_argument("--weights", action="append", nargs="+", default=[],
+                    metavar="NAME=CHECKPOINT",
+                    help="fine-tuned checkpoint per condition; repeat, or pass "
+                         "several after one flag; the FIRST is the baseline. "
+                         "Implies grid mode.")
+    ap.add_argument("--condition", action="append", nargs="+", default=[],
+                    metavar="NAME=MANIFEST",
+                    help="that condition's split_manifest.csv; repeat, or pass "
+                         "several after one flag; must name the same "
+                         "conditions as --weights, same order")
+    ap.add_argument("--cells", default=None, choices=["minimal", "full"],
+                    help="minimal: baseline row + diagonal (2N-1 cells). "
+                         "full: every model x condition cell (N^2)")
     ap.add_argument("--methods", nargs="+",
                     default=["raw", "clahe", "snr-aware"],
                     help="registered enhancement names; FIRST is the baseline")
@@ -91,6 +142,12 @@ def build_parser() -> argparse.ArgumentParser:
                     help="load a run config from YAML (for --rescore)")
     ap.add_argument("--rescore", action="store_true",
                     help="score from the cache; do not run inference")
+    ap.add_argument("--redraw", metavar="CSV", default=None,
+                    help="redraw the grid figure from an existing grid.csv "
+                         "and exit; needs no GPU and runs no inference")
+    ap.add_argument("--out", type=Path, default=None,
+                    help="output path for --redraw (default: grid.png "
+                         "beside the csv)")
     ap.add_argument("--no-cache", action="store_true",
                     help="ignore any existing cache and recompute")
     ap.add_argument("--no-write-results", action="store_true",
@@ -180,6 +237,17 @@ def _resolve_rescore_run(args, cfg=None) -> tuple[Path, Path]:
 def main() -> int:
     args = build_parser().parse_args()
 
+    # Redraw short-circuits everything: it reads a CSV and draws. No data, no
+    # GPU, no inference, so it works on a login node.
+    if args.redraw:
+        from evaluation.grid_figure import draw_grid_figure, load_rows
+        csv_path = Path(args.redraw)
+        out = args.out or csv_path.with_suffix(".png")
+        rows = load_rows(csv_path)
+        written = draw_grid_figure(rows, out, split=args.split)
+        print(f"[figure] wrote {written}  ({len(rows)} cells)")
+        return 0
+
     # A rescore needs to know WHICH run to rescore before it can build a
     # config. Resolve that first: --run-id, then --config, then the most
     # recent run.
@@ -234,6 +302,12 @@ def main() -> int:
             cfg.imgsz = args.imgsz
         if args.conf_floor is not None:
             cfg.conf_floor = args.conf_floor
+        if args.split_manifest is not None:
+            cfg.split_manifest = args.split_manifest
+        if args.split is not None:
+            cfg.split = args.split
+        if args.pixel_source is not None:
+            cfg.pixel_source = args.pixel_source
     else:
         if not args.images or not args.annotations:
             build_parser().error("--images and --annotations are required "
@@ -248,8 +322,11 @@ def main() -> int:
             images_dir=args.images,
             annotations=args.annotations,
             image_labels=args.image_labels,
+            split_manifest=args.split_manifest or "",
+            split=args.split or "",
             methods=args.methods,
             max_images=args.max_images if args.max_images is not None else 500,
+            pixel_source=args.pixel_source or "on_the_fly",
             imgsz=args.imgsz if args.imgsz is not None else 640,
             conf=args.conf if args.conf is not None else 0.25,
             conf_floor=args.conf_floor if args.conf_floor is not None else 0.001,
@@ -260,6 +337,28 @@ def main() -> int:
             strata=strata,
             run_id=args.run_id,
         )
+
+        # Grid mode: one checkpoint and one manifest per condition.
+        if args.weights:
+            cfg.weights = _parse_pairs(_flatten(args.weights), "--weights")
+            cfg.conditions = _parse_pairs(_flatten(args.condition), "--condition")
+            if list(cfg.weights) != list(cfg.conditions):
+                raise SystemExit(
+                    "ERROR: --weights and --condition must name the same "
+                    "conditions in the same order.\n"
+                    f"  weights:    {list(cfg.weights)}\n"
+                    f"  conditions: {list(cfg.conditions)}")
+            if not cfg.split:
+                raise SystemExit(
+                    "ERROR: grid mode needs --split (usually 'test') so every "
+                    "cell is scored on the held-out frames.")
+        if args.cells:
+            cfg.cell_mode = args.cells
+
+    if cfg.weights:
+        from evaluation.grid import run_grid
+        run_grid(cfg, REPO_ROOT, experiments_root=experiments_root)
+        return 0
 
     out = run_evaluation(
         cfg,
