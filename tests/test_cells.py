@@ -172,6 +172,46 @@ def test_yaml_round_trip_preserves_the_grid() -> None:
     assert back.cell_mode == "full", back.cell_mode
 
 
+def test_condition_without_its_own_model() -> None:
+    """An enhancement only run over the test split still gets a Q1 cell."""
+    models = ["raw", "clahe", "snr"]
+    conds = ["raw", "clahe", "snr", "retinex"]
+    cells = cells_to_run(models, "minimal", conditions=conds)
+    assert len(cells) == 6, cells
+    assert ("raw", "retinex") in cells, "missing the Q1 cell for retinex"
+    assert ("retinex", "retinex") not in cells, "no retinex model exists"
+    assert ("clahe", "clahe") in cells and ("snr", "snr") in cells
+
+
+def test_condition_without_model_full_grid() -> None:
+    models = ["raw", "clahe", "snr"]
+    conds = ["raw", "clahe", "snr", "retinex"]
+    cells = cells_to_run(models, "full", conditions=conds)
+    assert len(cells) == 12, len(cells)
+    assert ("clahe", "retinex") in cells
+
+
+def test_model_without_its_own_condition_is_skipped_on_the_diagonal() -> None:
+    """A model with no matching condition cannot contribute a Q2 cell."""
+    models = ["raw", "clahe", "snr"]
+    conds = ["raw", "clahe", "retinex"]
+    cells = cells_to_run(models, "minimal", conditions=conds)
+    assert ("snr", "snr") not in cells
+    assert ("raw", "retinex") in cells
+    # baseline row is 3 cells; only clahe has a condition to pair with
+    assert len(cells) == 4, cells
+
+
+def test_baseline_must_match_in_both_sets() -> None:
+    try:
+        cells_to_run(["raw", "clahe"], "minimal",
+                     conditions=["clahe", "raw"])
+    except ValueError as exc:
+        assert "first condition" in str(exc), exc
+        return
+    raise AssertionError("mismatched baselines should be rejected")
+
+
 # ----------------------------------------------------------------------
 def main() -> int:
     checks = [
@@ -183,6 +223,13 @@ def main() -> int:
         ("invalid cell mode rejected", test_invalid_mode_is_rejected),
         ("empty name list rejected", test_empty_names_is_rejected),
         ("cell_kind labels Q1/Q2/both/cross", test_cell_kind_labels),
+        ("condition without its own model",
+         test_condition_without_its_own_model),
+        ("condition without model, full grid",
+         test_condition_without_model_full_grid),
+        ("model without its own condition",
+         test_model_without_its_own_condition_is_skipped_on_the_diagonal),
+        ("baseline must match both sets", test_baseline_must_match_in_both_sets),
         ("validate_cells accepts a complete grid",
          test_validate_cells_accepts_a_complete_grid),
         ("validate_cells rejects a missing checkpoint",

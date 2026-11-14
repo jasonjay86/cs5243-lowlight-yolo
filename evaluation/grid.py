@@ -138,15 +138,24 @@ def run_grid(cfg: RunConfig, repo_root: Path,
                         else repo_root / "experiments")
 
     names = list(cfg.weights)
-    cells = cells_to_run(names, cfg.cell_mode)
+    cells = cells_to_run(names, cfg.cell_mode, conditions=list(cfg.conditions))
     validate_cells(cells, cfg.weights, cfg.conditions)
 
-    export_names = set(cfg.conditions)
-    if set(cfg.weights) != export_names:
+    # A condition may legitimately have test images and no model of its own
+    # (an enhancement run only over the test split). A model with no matching
+    # condition is different: it can only ever appear as a row in --cells full,
+    # so warn rather than refuse.
+    base_model, base_cond = names[0], list(cfg.conditions)[0]
+    if base_model != base_cond:
         raise SystemExit(
-            f"ERROR: every condition needs a checkpoint and a manifest.\n"
-            f"       weights:    {sorted(cfg.weights)}\n"
-            f"       conditions: {sorted(export_names)}")
+            f"ERROR: the baseline model must be the baseline condition, or "
+            f"every delta is measured against the wrong cell.\n"
+            f"       first --weights:   {base_model}\n"
+            f"       first --condition: {base_cond}")
+    unmatched = [m for m in names if m not in cfg.conditions]
+    if unmatched:
+        print(f"[grid] NOTE model(s) with no matching condition: {unmatched}; "
+              f"they appear only as rows against other conditions")
 
     rdir = run_dir(cfg, experiments_root)
     rdir.mkdir(parents=True, exist_ok=True)
