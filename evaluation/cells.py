@@ -33,32 +33,45 @@ from __future__ import annotations
 CELL_MODES = ("minimal", "full")
 
 
-def cells_to_run(names: list[str], mode: str = "minimal") -> list[tuple[str, str]]:
+def cells_to_run(models: list[str], mode: str = "minimal", *,
+                 conditions: list[str] | None = None) -> list[tuple[str, str]]:
     """Return the (model, test-condition) cells to evaluate.
 
-    The first name is the baseline and must be the raw/no-enhancement
-    condition, because every delta is measured against it.
+    ``models`` and ``conditions`` are separate sets on purpose: a condition
+    can have test images without having a fine-tuned model of its own. That
+    happens whenever an enhancement was only run over the test split, and it
+    is exactly the case that makes the Q1 cell worth having — a raw-trained
+    detector scored on that condition's images.
 
-    ``minimal`` scores 2N-1 cells: the baseline's whole row (Q1, plus the
-    baseline cell itself) and each condition's diagonal cell (Q2).
-    ``full`` scores all N*N cells, which is only worth doing once the models
-    are final.
+    The first model is the baseline and must also be the first condition,
+    because every delta is measured against the (baseline, baseline) cell.
 
-    Raises ValueError rather than silently scoring a partial grid, because a
-    missing cell is easy to miss in a table and impossible to notice in a
-    figure.
+    ``minimal`` scores the baseline's whole row (Q1, plus the baseline cell
+    itself) and each model's diagonal cell where that model also has a test
+    condition (Q2). When the two sets are equal that is 2N-1 cells.
+    ``full`` scores every model against every condition.
     """
     if mode not in CELL_MODES:
         raise ValueError(f"cell mode must be one of {CELL_MODES}, got {mode!r}")
-    if not names:
-        raise ValueError("cells_to_run needs at least one condition name")
+    if not models:
+        raise ValueError("cells_to_run needs at least one model")
 
-    base = names[0]
+    conds = list(conditions) if conditions is not None else list(models)
+    if not conds:
+        raise ValueError("cells_to_run needs at least one condition")
+
+    base = models[0]
+    if conds[0] != base:
+        raise ValueError(
+            f"the first model ({base!r}) must also be the first condition "
+            f"({conds[0]!r}); every delta is measured against that cell")
+
     if mode == "full":
-        return [(model, test) for model in names for test in names]
+        return [(model, test) for model in models for test in conds]
 
-    cells = [(base, test) for test in names]
-    cells += [(name, name) for name in names if name != base]
+    cells = [(base, test) for test in conds]
+    cells += [(model, model) for model in models
+              if model != base and model in conds]
     return cells
 
 

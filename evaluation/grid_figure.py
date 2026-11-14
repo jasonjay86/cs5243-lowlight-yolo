@@ -137,6 +137,30 @@ def _ordered(values: list[str]) -> list[str]:
     return out
 
 
+# Condition names in the csv are precise but long. At the type sizes a slide
+# needs, "retinexformer" rotated 30 degrees runs into the tick beside it. Map
+# to short display names for axis labels only; the csv, the table and every
+# printed number keep the exact key.
+_DISPLAY = {
+    "snr-aware": "SNR",
+    "retinexformer": "Retinex",
+    "clahe": "CLAHE",
+}
+
+
+def _display(name: str) -> str:
+    return _DISPLAY.get(name, name)
+
+
+def _abbrev_note(names) -> str:
+    """Footnote fragment explaining any display-name substitutions."""
+    used = sorted({n for n in names if n in _DISPLAY})
+    if not used:
+        return ""
+    pairs = ", ".join(f"{_display(n)} = {n}" for n in used)
+    return f"  Abbreviations: {pairs}."
+
+
 def draw_grid_figure(rows: list[dict], out_path: Path, *,
                      title: str | None = None,
                      split: str | None = None,
@@ -198,11 +222,15 @@ def draw_grid_figure(rows: list[dict], out_path: Path, *,
     fig.suptitle(title, fontsize=13, fontweight="bold",
                  horizontalalignment="left", x=0.012)
 
-    note = (f"Baseline: {baseline['model']} on {baseline['condition']} "
-            f"(mAP50 {baseline['map50']:.3f}).  Delta is paired on the same "
-            f"frames; bars are 95% bootstrap intervals.")
+    note = (f"Baseline: {_display(baseline['model'])} on "
+            f"{_display(baseline['condition'])} "
+            f"(mAP50 {baseline['map50']:.3f}); every delta is that cell "
+            f"subtracted from one paired cell.  Bars are 95% bootstrap "
+            f"intervals on the same frames.  Red = below baseline; hatched "
+            f"cells and em dashes = not evaluated.")
     if split:
         note = f"Split: {split}.  " + note
+    note += _abbrev_note(list(models) + list(conds))
     # supxlabel rather than fig.text: constrained layout reserves room for it,
     # so it cannot land on top of the x-axis labels.
     fig.supxlabel(note, fontsize=8, color="#444444",
@@ -226,7 +254,10 @@ def draw_grid_figure(rows: list[dict], out_path: Path, *,
         if supx is not None:
             supx.set_fontsize(14)
         _fit_panel_titles(fig)
-        _wrap_footnote(fig, width)
+    # Wrapping must run for every size, not only the slide variant: the note
+    # grew with the abbreviation line and ran 500 px past the right edge on
+    # the 200 dpi canvas.
+    _wrap_footnote(fig, width)
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -259,9 +290,9 @@ def _draw_heatmap(ax, models, conds, lookup, rotation: int = 0) -> None:
                    vmax=vmax, aspect="auto")
     ax.set_xticks(range(n_c))
     ax.set_yticks(range(n_m))
-    ax.set_xticklabels(conds, rotation=rotation,
+    ax.set_xticklabels([_display(c) for c in conds], rotation=rotation,
                        ha="right" if rotation else "center", fontsize=9)
-    ax.set_yticklabels(models, fontsize=9)
+    ax.set_yticklabels([_display(m) for m in models], fontsize=9)
     ax.set_xlabel("tested on", fontsize=9)
     ax.set_ylabel("trained on", fontsize=9)
 
@@ -303,7 +334,8 @@ def _draw_deltas(ax, deltas, baseline) -> None:
                 ha="center", va="center", fontsize=9, color="#666666")
         return
 
-    labels = [f"{r['model']} → {r['condition']}" for r in deltas]
+    labels = [f"{_display(r['model'])} → {_display(r['condition'])}"
+              for r in deltas]
     ys = list(range(len(deltas)))[::-1]
 
     # Pass 1: plot. Pass 2: label, once the axis limits are final. Labelling
@@ -315,6 +347,12 @@ def _draw_deltas(ax, deltas, baseline) -> None:
         color = "#b2182b" if d < 0 else "#1b7837"
         ax.plot([lo, hi], [y, y], color=color, linewidth=2.2,
                 solid_capstyle="round", alpha=0.85)
+        # End caps. The intervals here are 0.009-0.025 wide, i.e. narrower
+        # than the marker itself, so without caps a reader sees a bare dot
+        # and concludes the interval was never computed.
+        for edge in (lo, hi):
+            ax.plot([edge, edge], [y - 0.17, y + 0.17], color=color,
+                    linewidth=1.8, solid_capstyle="butt", alpha=0.9)
         ax.plot([d], [y], "o", color=color, markersize=7,
                 markeredgecolor="white", markeredgewidth=1.0)
         lo_x, hi_x = min(lo_x, lo), max(hi_x, hi)
@@ -343,16 +381,10 @@ def _draw_deltas(ax, deltas, baseline) -> None:
 
     ax.set_ylim(-0.7, len(deltas) - 0.3)
 
-    handles = [
-        Line2D([0], [0], marker="o", color="#b2182b", linestyle="-",
-               label="lower than baseline", markersize=6),
-        Line2D([0], [0], marker="o", color="#1b7837", linestyle="-",
-               label="higher than baseline", markersize=6),
-        Patch(facecolor="#d9d9d9", hatch="///", edgecolor="#bbbbbb",
-              label="not evaluated"),
-    ]
-    ax.legend(handles=handles, fontsize=7.5, frameon=False,
-              loc="lower right", handlelength=1.6)
+    # No legend. At slide type sizes it sat directly on the last row's value
+    # label, and every conventional corner was occupied by a row label or an
+    # interval. The colour convention and the hatch are stated in the
+    # footnote instead, which cannot collide with the data.
 
 
 def draw_summary_figure(rows: list[dict], out_path: Path, *,
@@ -408,7 +440,8 @@ def draw_summary_figure(rows: list[dict], out_path: Path, *,
     ax_t.axis("off")
 
     _draw_table(ax_t, rows, compact=slide)
-    labels = [f"{r['model']}\non {r['condition']}" for r in rows]
+    labels = [f"{_display(r['model'])}\non {_display(r['condition'])}"
+              for r in rows]
     _draw_metric_bars(ax_map, rows, labels, palette, baseline,
                       key="map50", lo_key="map50_lo", hi_key="map50_hi",
                       ylabel="mAP@0.5 (test split)",
@@ -418,10 +451,9 @@ def draw_summary_figure(rows: list[dict], out_path: Path, *,
                       ylabel="false-positive rate on empty frames",
                       panel="Empty-frame false positives (lower is better)")
 
-    handles = [Patch(facecolor=palette[c], label=f"tested on {c}")
-               for c in conds]
-    ax_map.legend(handles=handles, fontsize=7.5, frameon=False,
-                  loc="upper right", handlelength=1.2)
+    # No colour legend: each bar is already labelled "trained on X / on Y", so
+    # "tested on Z" merely restated the x-axis and collided with the top-right
+    # bar's value label at slide type sizes.
 
     if title is None:
         title = "Fine-tuned YOLOv8n on CCT-20: trained-on × tested-on"
@@ -434,8 +466,9 @@ def draw_summary_figure(rows: list[dict], out_path: Path, *,
             f"(mAP@0.5 {baseline['map50']:.3f}).")
     if split:
         note = f"Split: {split}, {baseline['n_frames']:,} frames.  " + note
-    note += ("  Bars are 95% paired bootstrap intervals; where an interval "
-             "crosses the baseline the difference is not resolved.")
+    note += (f"  Bars are 95% paired bootstrap intervals; where an interval "
+             f"crosses the baseline the difference is not resolved.")
+    note += _abbrev_note(list(conds))
     fig.supxlabel(note, fontsize=8, color="#444444",
                   horizontalalignment="left", x=0.012)
 
@@ -458,7 +491,10 @@ def draw_summary_figure(rows: list[dict], out_path: Path, *,
         if supx is not None:
             supx.set_fontsize(14)
         _fit_panel_titles(fig)
-        _wrap_footnote(fig, width)
+    # Wrapping must run for every size, not only the slide variant: the note
+    # grew with the abbreviation line and ran 500 px past the right edge on
+    # the 200 dpi canvas.
+    _wrap_footnote(fig, width)
 
     out_path = Path(out_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -557,14 +593,16 @@ def _draw_metric_bars(ax, rows, labels, palette, baseline, *, key,
         ax.text(x, v + u + 0.02 * top, f"{v:.3f}", ha="center",
                 va="bottom", fontsize=8)
 
-    rotation = 0
-    if n > 4:
-        rotation = 20
+    # Rotate only when a label is genuinely too wide for its slot. Rotated
+    # labels sweep upward into the bar value labels, so it is a last resort.
+    longest = max((line for label in labels for line in label.split("\n")),
+                  key=len, default="")
+    rotation = 20 if len(longest) > 12 else 0
     ax.set_xticks(list(xs))
     ax.set_xticklabels(labels, fontsize=7.5, rotation=rotation,
                        ha="right" if rotation else "center")
     ax.set_ylabel(ylabel, fontsize=9)
-    ax.set_ylim(0, top * 1.18)
+    ax.set_ylim(0, top * (1.34 if rotation else 1.18))
     ax.set_title(panel, fontsize=10, loc="left", pad=6)
     ax.grid(axis="y", color="#e6e6e6", linewidth=0.8)
     ax.set_axisbelow(True)

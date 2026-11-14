@@ -1,0 +1,758 @@
+{
+  "raw__raw": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.8456474030724214,
+        "recall": 0.8987715751827088,
+        "ap50": 0.9138447949108306
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.8620432513049963,
+        "recall": 0.8987715751827088,
+        "ap50": 0.9193813777425165
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7725631768953068,
+        "recall": 0.6815286624203821
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.9498525073746312,
+        "recall": 0.9611940298507463
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.8605108055009824,
+        "recall": 0.9163179916317992
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.8015873015873016,
+        "recall": 0.9588607594936709
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.828798185941043,
+        "recall": 0.9148936170212766
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.9182608695652174,
+        "recall": 0.9367238320520402
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.7855670103092783,
+        "recall": 0.865909090909091
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.8964723926380368,
+        "recall": 0.9139953088350273
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 0.7177033492822966,
+        "recall": 0.8310249307479224
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.9473684210526315,
+        "recall": 0.972972972972973
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.8376383763837638,
+        "recall": 0.7467105263157895
+      }
+    }
+  },
+  "raw__clahe": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.834899546338302,
+        "recall": 0.8012750738609858,
+        "ap50": 0.8342104574601049
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.8520171957671958,
+        "recall": 0.8012750738609858,
+        "ap50": 0.8411483101591495
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7330677290836654,
+        "recall": 0.5859872611464968
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.950920245398773,
+        "recall": 0.9253731343283582
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.8522483940042827,
+        "recall": 0.8326359832635983
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.7988826815642458,
+        "recall": 0.9050632911392406
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.8397590361445784,
+        "recall": 0.8723404255319149
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.9060360920970753,
+        "recall": 0.8610289769367239
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.6692913385826772,
+        "recall": 0.5795454545454546
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.8938740293356342,
+        "recall": 0.8100078186082877
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 0.7766990291262136,
+        "recall": 0.6648199445983379
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.9239130434782609,
+        "recall": 0.7657657657657657
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.7660377358490567,
+        "recall": 0.6677631578947368
+      }
+    }
+  },
+  "raw__snr-aware": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.8071564281190627,
+        "recall": 0.39636137459182086,
+        "ap50": 0.4485979263113398
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.8300227938782155,
+        "recall": 0.39636137459182086,
+        "ap50": 0.45467873400173736
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7654867256637168,
+        "recall": 0.5509554140127388
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.8643533123028391,
+        "recall": 0.817910447761194
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.8944281524926686,
+        "recall": 0.6380753138075314
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.8503937007874016,
+        "recall": 0.34177215189873417
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.8076923076923077,
+        "recall": 0.49937421777221525
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.8350694444444444,
+        "recall": 0.28444707273802483
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.7848837209302325,
+        "recall": 0.3068181818181818
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.8555347091932458,
+        "recall": 0.3565285379202502
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 1.0,
+        "recall": 0.00554016620498615
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.6549295774647887,
+        "recall": 0.8378378378378378
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.8759124087591241,
+        "recall": 0.39473684210526316
+      }
+    }
+  },
+  "raw__retinexformer": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.8606791494763567,
+        "recall": 0.4217073549992225,
+        "ap50": 0.5127942849548794
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.8903479973736047,
+        "recall": 0.4217073549992225,
+        "ap50": 0.5244115498332248
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7771739130434783,
+        "recall": 0.4554140127388535
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.9477124183006536,
+        "recall": 0.8656716417910447
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.8917378917378918,
+        "recall": 0.6548117154811716
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.951048951048951,
+        "recall": 0.43037974683544306
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.8663883089770354,
+        "recall": 0.5193992490613266
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.875945537065053,
+        "recall": 0.34240094618568895
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.9006211180124224,
+        "recall": 0.32954545454545453
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.9576837416481069,
+        "recall": 0.33620015637216577
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 1.0,
+        "recall": 0.07202216066481995
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.979381443298969,
+        "recall": 0.8558558558558559
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.7365591397849462,
+        "recall": 0.4506578947368421
+      }
+    }
+  },
+  "clahe__clahe": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.8237776484284052,
+        "recall": 0.8802674545171824,
+        "ap50": 0.9010025285900447
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.8426615064007145,
+        "recall": 0.8802674545171824,
+        "ap50": 0.9067948596836046
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7312925170068028,
+        "recall": 0.6847133757961783
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.9406528189910979,
+        "recall": 0.9462686567164179
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.85546875,
+        "recall": 0.9163179916317992
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.8201634877384196,
+        "recall": 0.9525316455696202
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.8585247883917775,
+        "recall": 0.8886107634543179
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.893159977388355,
+        "recall": 0.9343583678296866
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.7484787018255578,
+        "recall": 0.8386363636363636
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.8699248120300752,
+        "recall": 0.9046129788897577
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 0.6492890995260664,
+        "recall": 0.7590027700831025
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.860655737704918,
+        "recall": 0.9459459459459459
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.7933884297520661,
+        "recall": 0.631578947368421
+      }
+    }
+  },
+  "snr-aware__snr-aware": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.6560010985992859,
+        "recall": 0.7428082724304151,
+        "ap50": 0.7426412789582337
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.6746222284987996,
+        "recall": 0.7428082724304151,
+        "ap50": 0.7524400813700439
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7346153846153847,
+        "recall": 0.60828025477707
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.9287833827893175,
+        "recall": 0.9343283582089552
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.7385159010600707,
+        "recall": 0.8744769874476988
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.804093567251462,
+        "recall": 0.870253164556962
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.776595744680851,
+        "recall": 0.8222778473091364
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.6034249662009914,
+        "recall": 0.79183914843288
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.7857142857142857,
+        "recall": 0.65
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.668848167539267,
+        "recall": 0.799061767005473
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 0.13636363636363635,
+        "recall": 0.12465373961218837
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.9203539823008849,
+        "recall": 0.9369369369369369
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.7167630057803468,
+        "recall": 0.40789473684210525
+      }
+    }
+  },
+  "retinexformer__retinexformer": {
+    "by_light": {
+      "night": {
+        "n_frames": 6761,
+        "n_gt": 6431,
+        "precision": 0.6922416261093616,
+        "recall": 0.7519825843570207,
+        "ap50": 0.7767497735468605
+      },
+      "day": {
+        "n_frames": 0,
+        "precision": NaN,
+        "recall": NaN,
+        "ap50": NaN,
+        "n_gt": 0
+      }
+    },
+    "by_presence": {
+      "animal": {
+        "n_frames": 6160,
+        "n_gt": 6431,
+        "precision": 0.7162322274881516,
+        "recall": 0.7519825843570207,
+        "ap50": 0.7847681365463495
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN,
+        "ap50": NaN
+      }
+    },
+    "by_species": {
+      "bird": {
+        "n_frames": 232,
+        "n_gt": 314,
+        "precision": 0.7685589519650655,
+        "recall": 0.5605095541401274
+      },
+      "bobcat": {
+        "n_frames": 314,
+        "n_gt": 335,
+        "precision": 0.9373134328358209,
+        "recall": 0.9373134328358209
+      },
+      "cat": {
+        "n_frames": 477,
+        "n_gt": 478,
+        "precision": 0.7652495378927912,
+        "recall": 0.8661087866108786
+      },
+      "coyote": {
+        "n_frames": 316,
+        "n_gt": 316,
+        "precision": 0.8125,
+        "recall": 0.9050632911392406
+      },
+      "dog": {
+        "n_frames": 723,
+        "n_gt": 799,
+        "precision": 0.8435544430538173,
+        "recall": 0.8435544430538173
+      },
+      "empty": {
+        "n_frames": 601,
+        "n_gt": 0,
+        "precision": 0.0,
+        "recall": NaN
+      },
+      "opossum": {
+        "n_frames": 1691,
+        "n_gt": 1691,
+        "precision": 0.6347962382445141,
+        "recall": 0.7185097575399172
+      },
+      "rabbit": {
+        "n_frames": 440,
+        "n_gt": 440,
+        "precision": 0.7879518072289157,
+        "recall": 0.7431818181818182
+      },
+      "raccoon": {
+        "n_frames": 1196,
+        "n_gt": 1279,
+        "precision": 0.6984126984126984,
+        "recall": 0.7568412822517592
+      },
+      "rodent": {
+        "n_frames": 356,
+        "n_gt": 361,
+        "precision": 0.4628297362110312,
+        "recall": 0.5346260387811634
+      },
+      "skunk": {
+        "n_frames": 108,
+        "n_gt": 111,
+        "precision": 0.911504424778761,
+        "recall": 0.9279279279279279
+      },
+      "squirrel": {
+        "n_frames": 304,
+        "n_gt": 304,
+        "precision": 0.657258064516129,
+        "recall": 0.5361842105263158
+      }
+    }
+  }
+}

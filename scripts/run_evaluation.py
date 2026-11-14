@@ -342,12 +342,18 @@ def main() -> int:
         if args.weights:
             cfg.weights = _parse_pairs(_flatten(args.weights), "--weights")
             cfg.conditions = _parse_pairs(_flatten(args.condition), "--condition")
-            if list(cfg.weights) != list(cfg.conditions):
+            if not cfg.conditions:
                 raise SystemExit(
-                    "ERROR: --weights and --condition must name the same "
-                    "conditions in the same order.\n"
-                    f"  weights:    {list(cfg.weights)}\n"
-                    f"  conditions: {list(cfg.conditions)}")
+                    "ERROR: grid mode needs at least one --condition.")
+            # Conditions and models need not be the same set: a condition can
+            # have test images without a fine-tuned model of its own. Only the
+            # baseline must agree, because every delta is measured against it.
+            if list(cfg.weights)[0] != list(cfg.conditions)[0]:
+                raise SystemExit(
+                    "ERROR: the first --weights and the first --condition must "
+                    "be the same name (the baseline cell).\n"
+                    f"  first weight:    {list(cfg.weights)[0]}\n"
+                    f"  first condition: {list(cfg.conditions)[0]}")
             if not cfg.split:
                 raise SystemExit(
                     "ERROR: grid mode needs --split (usually 'test') so every "

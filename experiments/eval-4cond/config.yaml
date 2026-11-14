@@ -1,0 +1,48 @@
+_env:
+  cuda_available: true
+  cuda_device: Tesla V100S-PCIE-32GB
+  cuda_version: '12.6'
+  numpy: 2.2.6
+  opencv: not installed
+  platform: Linux-4.18.0-553.168.1.el8_10.x86_64-x86_64-with-glibc2.28
+  python: 3.10.22
+  torch: 2.14.1+cu126
+  ultralytics: 8.4.173
+annotations: /work/gsh998/cs5243-lowlight-yolo/data/cct20/caltech_bboxes_20200316.json
+bootstrap: 1000
+cell_mode: minimal
+conditions:
+  clahe: /work/gsh998/cs5243-lowlight-yolo/data/cct20_clahe/split_manifest.csv
+  raw: /work/gsh998/cs5243-lowlight-yolo/data/cct20_splits/split_manifest.csv
+  retinexformer: /work/gsh998/cs5243-lowlight-yolo/data/cct20_retinex/split_manifest.csv
+  snr-aware: /work/gsh998/cs5243-lowlight-yolo/data/cct20_snr/split_manifest.csv
+conf: 0.25
+conf_floor: 0.001
+device: cuda
+image_labels: /work/gsh998/cs5243-lowlight-yolo/data/cct20/caltech_camera_traps.json.zip
+images_dir: /work/gsh998/cs5243-lowlight-yolo/data/cct20/eccv_18_all_images_sm
+imgsz: 640
+max_images: 500
+methods:
+- raw
+- clahe
+- snr-aware
+pixel_source: precomputed
+repo_root: /work/gsh998/cs5243-lowlight-yolo
+run_id: eval-4cond
+seed: 0
+split: test
+split_manifest: /work/gsh998/cs5243-lowlight-yolo/data/cct20_splits/split_manifest.csv
+strata:
+  day_fraction: 0.25
+  empty_fraction: 0.25
+  min_per_species: 1
+  night_end_hour: 6
+  night_start_hour: 19
+  species_balance: natural
+weights:
+  clahe: /work/gsh998/cs5243-lowlight-yolo/models/best_yolo-finetune-clahe.pt
+  raw: /work/gsh998/cs5243-lowlight-yolo/models/best_yolo-finetune-raw.pt
+  retinexformer: /work/gsh998/cs5243-lowlight-yolo/models/best_yolo-finetune-retinexformer.pt
+  snr-aware: /work/gsh998/cs5243-lowlight-yolo/models/best_yolo-finetune-snr.pt
+yolo_weights: /work/gsh998/cs5243-lowlight-yolo/detection/yolov8n.pt

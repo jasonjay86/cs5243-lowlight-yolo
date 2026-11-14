@@ -1,0 +1,147 @@
+#!/bin/bash
+#SBATCH --job-name=eval-grid
+#SBATCH --partition=gpu1v100,gpu2v100,gpu4v100
+#SBATCH --time=72:00:00
+#SBATCH --oversubscribe
+#SBATCH -N 1 #specifies how many compute nodes we want to use
+#SBATCH -n 40 #specifies how many CPU cores we want to use
+#SBATCH --mail-type=END
+#SBATCH --mail-user=jason.johnson2@my.utsa.edu
+#SBATCH --output=logs/slurm-%j-eval-grid.out
+#SBATCH --error=logs/slurm-%j-eval-grid.err
+
+# Fine-tuned evaluation grid, then figures.
+#
+# Models and test conditions are NOT required to be the same set. A condition
+# may have test images without a fine-tuned model of its own: that is what
+# happens when an enhancement was only run over the test split, and it still
+# contributes the Q1 cell (the raw-trained detector scored on those images).
+#
+# Here: 4 checkpoints (raw, clahe, snr, retinexformer) x 4 test conditions
+#       (raw, clahe, snr, retinex). Models and conditions happen to coincide,
+#       but they are still passed as separate sets, so either can grow alone.
+#
+#   CELLS=minimal -> baseline row over all 4 conditions + the three
+#                    diagonals = 7 cells
+#   CELLS=full    -> 4 x 4 = 16 cells
+#
+# Overridable at submit time:
+#   sbatch --export=ALL,RUN_ID=eval-4cond,CELLS=minimal scripts/sbatch-eval-grid
+#
+# Predictions are cached per cell under experiments/<RUN_ID>/, so a re-run of
+# the same RUN_ID costs no GPU time. Use a distinct RUN_ID for a full run so
+# the minimal CSV is preserved.
+
+set -euo pipefail
+
+cd /work/gsh998/cs5243-lowlight-yolo
+mkdir -p logs
+
+module load anaconda3
+source "$(conda info --base)/etc/profile.d/conda.sh"
+conda activate cs5243-lowlight-cuda
+
+echo "[job] $(date -Is) on $(hostname)"
+python -c "import torch; print('[job] torch', torch.__version__, 'cuda', torch.cuda.is_available())"
+
+RUN_ID="${RUN_ID:-eval-4cond}"
+CELLS="${CELLS:-minimal}"
+
+# RetinexFormer pixels exist for the test split only.
+# RETINEX_DIR is derived from the manifest when not supplied, so the geometry
+# check and the actual scoring can never disagree about where the pixels are.
+RETINEX_DIR="${RETINEX_DIR:-}"
+RETINEX_MANIFEST="${RETINEX_MANIFEST:-data/cct20_retinex/split_manifest.csv}"
+
+if [ -z "$RETINEX_DIR" ]; then
+  RETINEX_DIR=$(python -c "
+import csv, os
+r = next(csv.DictReader(open('$RETINEX_MANIFEST')))
+print(os.path.dirname(r['image_path']))
+")
+fi
+echo "[job] retinex dir: $RETINEX_DIR"
+[ -d "$RETINEX_DIR" ] || { echo "[preflight] MISSING retinex dir $RETINEX_DIR"; exit 1; }
+
+# ---- preflight: fail in seconds, not after the queue wait ------------------
+missing=0
+for p in data/cct20/eccv_18_all_images_sm \
+         data/cct20_clahe/images \
+         data/cct20_snr/images \
+         "$RETINEX_DIR" \
+         data/cct20/caltech_bboxes_20200316.json \
+         data/cct20/caltech_camera_traps.json.zip \
+         data/cct20_splits/split_manifest.csv \
+         data/cct20_clahe/split_manifest.csv \
+         data/cct20_snr/split_manifest.csv \
+         "$RETINEX_MANIFEST" \
+         models/best_yolo-finetune-raw.pt \
+         models/best_yolo-finetune-clahe.pt \
+         models/best_yolo-finetune-snr.pt \
+         models/best_yolo-finetune-retinexformer.pt ; do
+  [ -e "$p" ] || { echo "[preflight] MISSING $p"; missing=1; }
+done
+[ "$missing" -eq 0 ] || { echo "[preflight] aborting: fix the paths above"; exit 1; }
+
+# ---- geometry: every condition must preserve raw pixel dimensions ----------
+# Ground-truth boxes are scaled against the RAW images once and reused for
+# every condition. That is only valid if the enhancements preserve H and W.
+# A mismatch here would make the IoU matching correct-looking but wrong.
+python - "$RETINEX_DIR" <<'PY'
+import cv2, csv, os, sys
+
+retinex = sys.argv[1]
+conds = {"raw":     "data/cct20/eccv_18_all_images_sm",
+         "clahe":   "data/cct20_clahe/images",
+         "snr":     "data/cct20_snr/images",
+         "retinex": retinex}
+
+rows = [r for r in csv.DictReader(open("data/cct20_splits/split_manifest.csv"))
+        if r["split"] == "test"][:20]
+
+base, bad = None, 0
+for r in rows:
+    iid = r["image_id"]
+    shapes = {}
+    for name, d in conds.items():
+        im = cv2.imread(os.path.join(d, iid + ".jpg"))
+        shapes[name] = None if im is None else im.shape[:2]
+    if base is None:
+        base = shapes["raw"]
+    off = {k: v for k, v in shapes.items() if v != base}
+    if off:
+        bad += 1
+        print("[preflight] DIM MISMATCH %s: raw=%s %s" % (iid, base, off))
+
+print("[preflight] checked %d frames against raw %s; mismatches=%d"
+      % (len(rows), base, bad))
+sys.exit(1 if bad else 0)
+PY
+
+# ---- the grid --------------------------------------------------------------
+python scripts/run_evaluation.py \
+  --images data/cct20/eccv_18_all_images_sm \
+  --annotations data/cct20/caltech_bboxes_20200316.json \
+  --image-labels data/cct20/caltech_camera_traps.json.zip \
+  --split-manifest data/cct20_splits/split_manifest.csv \
+  --split test \
+  --pixel-source precomputed \
+  --weights raw=models/best_yolo-finetune-raw.pt \
+  --weights clahe=models/best_yolo-finetune-clahe.pt \
+  --weights snr-aware=models/best_yolo-finetune-snr.pt \
+  --weights retinexformer=models/best_yolo-finetune-retinexformer.pt \
+  --condition raw=data/cct20_splits/split_manifest.csv \
+  --condition clahe=data/cct20_clahe/split_manifest.csv \
+  --condition snr-aware=data/cct20_snr/split_manifest.csv \
+  --condition retinexformer="$RETINEX_MANIFEST" \
+  --cells "$CELLS" \
+  --device cuda \
+  --run-id "$RUN_ID"
+
+# ---- figures: heatmap + summary, both with 16:9 slide variants -------------
+python -m evaluation.grid_figure "experiments/$RUN_ID/grid.csv" \
+  --split test --figure both --slide
+
+echo "[job] done $(date -Is)"
+echo "[job] results: experiments/$RUN_ID/grid.csv"
+column -s, -t < "experiments/$RUN_ID/grid.csv" | head -20 || true

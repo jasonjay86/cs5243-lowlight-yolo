@@ -415,6 +415,28 @@ def test_cli_writes_the_names_the_run_uses() -> None:
             assert (d / name).is_file(), f"{name} missing; got {sorted(p.name for p in d.iterdir())}"
 
 
+def test_slide_is_clean_with_the_real_four_condition_names() -> None:
+    """Long real names rotated 30 degrees used to collide with each other.
+
+    The synthetic tests use short names ("m1", "m2"), which never reproduced
+    it: "retinexformer" at 14 pt across a 4-column heatmap is 370 px wide and
+    ran into its neighbour. Display names are shortened, so no rendered text
+    may overlap or leave the canvas.
+    """
+    rows = _minimal_rows(["raw", "clahe", "snr-aware", "retinexformer"])
+    for fn in (draw_grid_figure, draw_summary_figure):
+        with tempfile.TemporaryDirectory() as td:
+            _, fig = fn(rows, Path(td) / "x.png", slide=True, return_fig=True)
+            try:
+                clipped = _out_of_canvas(fig)
+                overlapping = _overlaps(fig)
+            finally:
+                plt.close(fig)
+        assert not clipped, f"{fn.__name__} clipped at 4 conditions: {clipped}"
+        assert not overlapping, (
+            f"{fn.__name__} has overlapping text at 4 conditions: {overlapping}")
+
+
 # ----------------------------------------------------------------------
 def main() -> int:
     checks = [
@@ -434,6 +456,8 @@ def main() -> int:
          test_summary_reads_a_csv_without_the_new_columns),
         ("slide variant is 16:9", test_slide_variant_is_sixteen_by_nine),
         ("slide clean at 2 methods", test_slide_is_clean_at_two_methods),
+        ("slide clean with real 4-condition names",
+         test_slide_is_clean_with_the_real_four_condition_names),
         ("slide titles stay inside", test_slide_titles_are_inside_the_canvas),
         ("slide grows for a big grid", test_slide_grows_when_the_grid_needs_more_room),
         ("cli names match the run", test_cli_writes_the_names_the_run_uses),
