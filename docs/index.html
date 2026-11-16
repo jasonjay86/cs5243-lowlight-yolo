@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Low-Light Enhancement for Camera-Trap Detection</title>
+<meta name="description" content="CS5243 Computer Vision, Group 4: does low-light image enhancement help YOLO detect animals in night camera-trap images?">
+<style>
+:root {
+  --bg: #f7f8f6; --surface: #ffffff; --tint: #eef2f1; --ink: #1b2b34; --mute: #5b6b73; --line: #dde3e1;
+  --dark: #0e2a33; --on-dark: #ffffff;
+  --raw: #2a76d8; --clahe: #ee6a35; --snr: #1ab27a; --retinex: #8a63d2; --link: #1d5fb8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c1a20; --surface: #12262e; --tint: #183039; --ink: #e8efee; --mute: #9db0b6; --line: #25414a;
+    --dark: #061317; --link: #7db4ff;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--link); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 16px; }
+header { background: var(--dark); color: var(--on-dark); padding: 56px 0 44px; }
+header h1 { font: 700 clamp(28px, 5vw, 42px)/1.2 Georgia, "Times New Roman", serif; margin: 0 0 12px; }
+header p { margin: 0 0 8px; color: #c9d6d6; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.btn { display: inline-block; padding: 10px 18px; border-radius: 8px; background: #ffffff; color: #0e2a33; font-weight: 600; text-decoration: none; }
+.btn.alt { background: transparent; color: #ffffff; border: 1px solid #5f7c84; }
+main section { padding: 36px 0 8px; }
+h2 { font: 700 26px/1.3 Georgia, "Times New Roman", serif; margin: 0 0 12px; }
+h3 { font-size: 18px; margin: 20px 0 6px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
+.stat b { display: block; font-size: 28px; line-height: 1.2; }
+.stat span { color: var(--mute); font-size: 14px; }
+.bars { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 16px 0; }
+.bar { display: grid; grid-template-columns: 214px 1fr 56px; gap: 10px; align-items: center; margin: 7px 0; font-size: 15px; }
+.bar .track { background: var(--tint); border-radius: 5px; height: 22px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 5px; }
+.bar .val { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 14px; color: var(--mute); margin-top: 10px; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.tablewrap { overflow-x: auto; margin: 16px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; background: var(--surface); }
+th, td { padding: 7px 6px; border: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+td { white-space: nowrap; }
+th { background: var(--tint); text-align: center; }
+td:first-child, th:first-child { text-align: left; font-weight: 600; }
+.note { color: var(--mute); font-size: 15px; }
+pre { background: var(--dark); color: #e6f0ef; padding: 14px 16px; border-radius: 8px; overflow-x: auto; font-size: 14px; line-height: 1.5; }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+ul { padding-left: 22px; }
+footer { padding: 36px 0 56px; color: var(--mute); font-size: 15px; }
+@media (max-width: 700px) { .bar { grid-template-columns: 110px 1fr 50px; font-size: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>Does low-light enhancement help YOLO detect animals at night?</h1>
+    <p>CS5243 Computer Vision, Fall 2026, Group 4</p>
+    <p>Jason Johnson, Krutin Patel, Richard Zanni</p>
+    <div class="links">
+      <!-- TODO: replace # with the link to the final presentation before publishing -->
+      <a class="btn" href="#presentation" id="presentation-link">Presentation</a>
+      <a class="btn alt" href="https://github.com/jasonjay86/cs5243-lowlight-yolo">Code repository</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+<section>
+  <h2>The question</h2>
+  <p>Camera traps let ecologists monitor wildlife remotely, but night photos are dark, grainy and low-contrast, and detectors miss animals in them. Image enhancement is a common fix, but it is not clear which method helps detection, or whether some add artifacts that make it worse. We compared low-light enhancement methods as a preprocessing step before YOLOv8n on the Caltech Camera Traps dataset (CCT-20).</p>
+  <p>The methods are <strong>CLAHE</strong> (classical contrast enhancement), <strong>SNR-Aware</strong> (a CVPR 2022 transformer) and <strong>RetinexFormer</strong> (a learned Retinex model), each compared with the raw images.</p>
+</section>
+
+<section>
+  <h2>Data and setup</h2>
+  <div class="grid">
+    <div class="stat"><b>46,231</b><span>CCT-20 images in our frozen split</span></div>
+    <div class="stat"><b>14 / 3 / 3</b><span>train / val / test camera locations</span></div>
+    <div class="stat"><b>6,761</b><span>held-out test images</span></div>
+    <div class="stat"><b>44,254</b><span>animal bounding boxes (one class)</span></div>
+  </div>
+  <p>The split is location-disjoint: no camera site appears in two splits, so test scores reflect new sites. The detector is YOLOv8n, kept the same for every method. We ran two experiments:</p>
+  <ul>
+    <li><strong>Q1, test time:</strong> does enhancing the input help a model trained on raw images?</li>
+    <li><strong>Q2, train time:</strong> does training the detector on enhanced images beat training on raw?</li>
+  </ul>
+  <p>Metrics are class-agnostic mAP@0.5 with 95% paired bootstrap intervals over test frames, plus precision, recall and the false-positive rate on empty frames.</p>
+</section>
+
+<section>
+  <h2>Results</h2>
+  <p>mAP@0.5 on the 6,761 held-out test frames. Each bar is a model (trained on) scored on images processed one way (tested on).</p>
+  <div class="bars" id="bars" role="img" aria-label="Bar chart of mAP@0.5 for seven trained-on and tested-on combinations"></div>
+  <div class="legend">
+    <span><i style="background:var(--raw)"></i>raw test images</span>
+    <span><i style="background:var(--clahe)"></i>CLAHE</span>
+    <span><i style="background:var(--snr)"></i>SNR-Aware</span>
+    <span><i style="background:var(--retinex)"></i>RetinexFormer</span>
+  </div>
+
+  <div class="tablewrap">
+    <table id="table"></table>
+  </div>
+  <p class="note">Intervals are paired bootstrap over test frames and do not include training-seed variance (one training run per model). Only 601 test frames are empty, so false-positive intervals are wide.</p>
+
+  <h3>What we found</h3>
+  <ul>
+    <li><strong>No enhancement beat the raw baseline</strong> (mAP@0.5 0.914), and every paired 95% interval excludes zero.</li>
+    <li><strong>Enhancing at test time hurts a raw-trained detector:</strong> CLAHE −0.080, RetinexFormer −0.401, SNR-Aware −0.465, mostly through lost recall.</li>
+    <li><strong>Retraining on enhanced images recovers most of the loss but not all of it:</strong> CLAHE −0.013 (about 84% recovered), RetinexFormer −0.137, SNR-Aware −0.171. The retrained SNR-Aware and RetinexFormer models also have more false positives on empty frames (about 0.30 vs 0.206).</li>
+  </ul>
+
+  <h3>Caveats</h3>
+  <ul>
+    <li>Scores average over all test frames, day and night. Night-only results may differ.</li>
+    <li>The enhancers are used as pretrained, not fine-tuned on camera-trap data. Fine-tuning them is untested and would need unpaired or self-supervised training, since night frames have no bright counterparts.</li>
+    <li>Each model is a single training run.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Reproduce it</h2>
+  <p>Full setup and commands are in the <a href="https://github.com/jasonjay86/cs5243-lowlight-yolo">repository README</a>. In outline, from the repo root:</p>
+<pre><code># 1. environment (see README; GPU nodes need a CUDA 12.6 PyTorch build)
+conda env create -f environment.yml
+
+# 2. YOLO dataset from the frozen split
+python scripts/prepare_yolo_dataset.py \
+  --manifest data/cct20_splits/split_manifest.csv \
+  --annotations data/cct20/caltech_bboxes_20200316.json \
+  --output data/cct20_yolo --absolute-yaml-path
+
+# 3. enhanced copy of the dataset, then its YOLO dataset
+python scripts/enhance_dataset.py --manifest data/cct20_splits/split_manifest.csv \
+  --method clahe --output data/cct20_clahe --workers 8
+python scripts/prepare_yolo_dataset.py --manifest data/cct20_clahe/split_manifest.csv \
+  --annotations data/cct20/caltech_bboxes_20200316.json \
+  --output data/cct20_yolo_clahe --absolute-yaml-path
+
+# 4. fine-tune YOLOv8n (Slurm; same settings for every condition)
+sbatch scripts/sbatch-yolo-finetuning
+sbatch scripts/sbatch-yolo-finetuning-clahe</code></pre>
+</section>
+
+<section>
+  <h2>Team</h2>
+  <ul>
+    <li><strong>Jason Johnson:</strong> SNR-Aware enhancement, evaluation harness, integration</li>
+    <li><strong>Krutin Patel:</strong> CLAHE enhancement, enhanced-dataset pipeline, CLAHE fine-tuning</li>
+    <li><strong>Richard Zanni:</strong> YOLO detector and raw fine-tuning, ARC scripts</li>
+  </ul>
+</section>
+</main>
+
+<footer>
+  <div class="wrap">CS5243 Computer Vision, Fall 2026. Source: <a href="https://github.com/jasonjay86/cs5243-lowlight-yolo">github.com/jasonjay86/cs5243-lowlight-yolo</a></div>
+</footer>
+
+<script>
+const rows = [
+  // model, tested on, kind, mAP, d, lo, hi, precision, recall, emptyFP, fpLo, fpHi
+  ["raw","raw","base",0.9138,0,0,0,0.8456,0.8988,0.2063,0.1744,0.2399],
+  ["raw","CLAHE","Q1",0.8342,-0.0796,-0.0848,-0.0731,0.8349,0.8013,0.1847,0.1533,0.218],
+  ["raw","SNR-Aware","Q1",0.4486,-0.4652,-0.4769,-0.4524,0.8072,0.3964,0.1398,0.1146,0.1659],
+  ["raw","RetinexFormer","Q1",0.5128,-0.4011,-0.4126,-0.3887,0.8607,0.4217,0.1614,0.1333,0.1909],
+  ["CLAHE","CLAHE","Q2",0.901,-0.0128,-0.0171,-0.0082,0.8238,0.8803,0.2396,0.2079,0.2741],
+  ["SNR-Aware","SNR-Aware","Q2",0.7426,-0.1712,-0.1802,-0.1628,0.656,0.7428,0.3028,0.2678,0.3409],
+  ["RetinexFormer","RetinexFormer","Q2",0.7767,-0.1371,-0.1455,-0.129,0.6922,0.752,0.3111,0.2756,0.347]
+];
+const color = { "raw":"var(--raw)", "CLAHE":"var(--clahe)", "SNR-Aware":"var(--snr)", "RetinexFormer":"var(--retinex)" };
+const f3 = x => x.toFixed(3);
+const sg = x => (x < 0 ? "−" : "+") + Math.abs(x).toFixed(3);
+document.getElementById("bars").innerHTML = rows.map(r =>
+  `<div class="bar"><div>${r[0]} → ${r[1]}</div><div class="track"><div class="fill" style="width:${r[3]*100}%;background:${color[r[1]]}"></div></div><div class="val">${f3(r[3])}</div></div>`
+).join("");
+document.getElementById("table").innerHTML =
+  "<thead><tr><th>Trained → tested</th><th>Q</th><th>mAP@0.5</th><th>Δ vs baseline [95% CI]</th><th>Precision</th><th>Recall</th><th>Empty-frame FP [95% CI]</th></tr></thead><tbody>" +
+  rows.map(r => `<tr><td>${r[0]} → ${r[1]}</td><td>${r[2]}</td><td>${f3(r[3])}</td><td>${r[2]==="base" ? "baseline" : sg(r[4]) + " [" + sg(r[5]) + ", " + sg(r[6]) + "]"}</td><td>${f3(r[7])}</td><td>${f3(r[8])}</td><td>${f3(r[9])} [${f3(r[10])}, ${f3(r[11])}]</td></tr>`).join("") + "</tbody>";
+</script>
+</body>
+</html>
