@@ -15,11 +15,15 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Datasets — never in git (too large; see data/README.md)
-data/
+# Datasets. Everything under data/ is generated or downloaded, except the
+# frozen split manifest and its summary, which are tracked on purpose.
+data/*
 !data/README.md
+!data/cct20_splits/
+!data/cct20_splits/*.csv
+!data/cct20_splits/*.json
 
-# Model weights — never in git (use Git LFS or external storage)
+# Model weights. Use external storage or Git LFS if a weight must be shared.
 *.pt
 *.pth
 *.onnx
@@ -27,24 +31,28 @@ data/
 **/weights/
 !enhancements/*/weights/.gitkeep
 
-# YOLO training/eval output
+# YOLO training output
 runs/
 wandb/
 
-# Experiment outputs (predictions, logs)
+# Per-run artefacts. The numbers stay; the big files regenerate.
 experiments/*/predictions/
 experiments/*/logs/
 experiments/*/checkpoints/
+experiments/*/*.png
+experiments/*/*.pdf
 !experiments/.gitkeep
-!experiments/*/config.yaml
-!experiments/*/results.json
 
-# Results artifacts (large files; small summaries OK)
+# Sampled-run figures
 results/figures/*.png
 results/figures/*.pdf
 !results/figures/.gitkeep
 
-# OS / editor
+# Slurm logs
+logs/
+info.*
+
+# OS and editor
 .DS_Store
 Thumbs.db
 .vscode/
@@ -52,105 +60,6 @@ Thumbs.db
 *.swp
 *~
 
-# Env files (secrets)
+# Secrets
 .env
 .env.local
-snr_aware_keys.txt
-experiments/smoke_snr_aware/run-01/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-01/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-01/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-01/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-01/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-01/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-01/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-01/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-01/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-01/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-01/compare_all.png
-experiments/smoke_snr_aware/run-01/smoke_snr_aware_run_01.zip
-experiments/yolo_compare/run-01/detections.csv
-experiments/yolo_compare/run-01/summary.txt
-experiments/yolo_compare/run-01/clahe/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/clahe/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/clahe/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/clahe/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/clahe/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/clahe/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/clahe/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/clahe/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/clahe/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/clahe/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/compare/5a0e36c2-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/compare/5a0e36c4-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/compare/5a0e36c9-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/compare/5a0e36cc-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/compare/5a0e36d3-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/compare/YOLO_comparison.zip
-experiments/yolo_compare/run-01/raw/5a0e36c2-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/raw/5a0e36c4-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/raw/5a0e36c9-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/raw/5a0e36cc-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/raw/5a0e36d3-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-01/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/smoke_snr_aware/run-02/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-02/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-02/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-02/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-02/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-02/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-02/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-02/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-02/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_compare.png
-experiments/smoke_snr_aware/run-02/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_snr.png
-experiments/smoke_snr_aware/run-02/compare_all.png
-experiments/yolo_compare/run-02/detections.csv
-experiments/yolo_compare/run-02/summary.txt
-experiments/yolo_compare/run-02/clahe/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/clahe/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/clahe/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/clahe/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/clahe/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/clahe/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/clahe/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/clahe/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/clahe/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/clahe/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/compare/5a0e36c2-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/compare/5a0e36c4-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/compare/5a0e36c9-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/compare/5a0e36cc-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/compare/5a0e36d3-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/raw/5a0e36c2-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/raw/5a0e36c4-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/raw/5a0e36c9-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/raw/5a0e36cc-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/raw/5a0e36d3-23d2-11e8-a6a3-ec086b02610b.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36c2-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36c4-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36c9-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36cc-23d2-11e8-a6a3-ec086b02610b_out.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_in.png
-experiments/yolo_compare/run-02/snr_aware/5a0e36d3-23d2-11e8-a6a3-ec086b02610b_out.png
-
-# Evaluation run artefacts: numbers stay, figures regenerate from grid.csv.
-experiments/*/*.png
-
-# Slurm job logs
-logs/
-info.*
-
-# Ultralytics fine-tuning output
-experiments/yolo_finetune/

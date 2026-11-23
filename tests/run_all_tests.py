@@ -40,7 +40,8 @@ TEST_FILES = [
 ]
 
 OPTIONAL_TESTS = [
-    ("test_diagnose.py", "passed"),
+    # Add (filename, marker) pairs here for tests that may legitimately be
+    # absent in a checkout, e.g. a local diagnostic script.
 ]
 
 
