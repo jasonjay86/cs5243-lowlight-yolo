@@ -6,7 +6,10 @@ Compares detection results across enhancement methods and reports:
 
 - **Δ mAP** (enhanced − raw baseline) per method — the primary result.
 - **False-positive rate** on "empty" frames per method (for hallucinated detections).
-- **Latency** for enhancement stage vs. YOLO stage, attributed separately.
+- **Latency** for the enhancement stage, timed separately from detection. The
+  per-cell detection-time column is not yet trustworthy (it is empty in the
+  grid and the GFLOPs attribution is off by roughly 2x across conditions), so
+  latency is reported as enhancement cost per image only.
 
 Plus per-stratum breakdowns (night vs day, empty vs animal, per species) and
 confidence intervals on every headline number.
@@ -54,6 +57,59 @@ python -c "import torch; print(torch.__version__, torch.version.cuda, torch.cuda
 the final numbers. On CPU, budget roughly 4 s/image for `snr-aware` and
 8 s/image for `retinexformer`.
 
+### Grid mode: one checkpoint per condition
+
+The reported result comes from grid mode, which scores every fine-tuned
+checkpoint on the frozen test split under every condition. It is selected by
+passing `--weights`:
+
+```bash
+python scripts/run_evaluation.py \
+    --images data/cct20/eccv_18_all_images_sm \
+    --annotations data/cct20/caltech_bboxes_20200316.json \
+    --image-labels data/cct20/caltech_camera_traps.json.zip \
+    --split-manifest data/cct20_splits/split_manifest.csv \
+    --split test \
+    --pixel-source precomputed \
+    --weights raw=models/best_yolo-finetune-raw.pt \
+    --weights clahe=models/best_yolo-finetune-clahe.pt \
+    --condition raw=data/cct20_splits/split_manifest.csv \
+    --condition clahe=data/cct20_clahe/split_manifest.csv \
+    --device cuda
+```
+
+Pairs are `name=path`. The rules:
+
+- The first `--weights` and the first `--condition` must share a name, and it
+  must be `raw`, because every delta is measured against that cell.
+- `--split` is required, so every cell is scored on held-out frames only.
+  Validation metrics are never reported: early stopping picked the checkpoints
+  on validation, so those numbers are optimistic by construction.
+- `--cells minimal` scores 2N-1 cells (the baseline row plus the diagonal);
+  `--cells full` scores all N squared.
+- Model names and condition names need not be the same set. A condition can
+  supply test images without a fine-tuned model of its own.
+- `--pixel-source precomputed` loads already-enhanced images and never applies
+  an enhancement; `on_the_fly` applies it in-process from the raw frames.
+- Each condition resolves its paths through its own manifest's `image_path`
+  column. A manifest copied from another user's tree will carry their absolute
+  paths and every frame read will fail.
+
+One run produces `grid.csv`, `grid_breakdown.json`, `config.yaml` and the four
+figures. Figures are drawn from the CSV, so they can be redrawn without
+inference:
+
+```bash
+python -m evaluation.grid_figure experiments/eval-4cond/grid.csv \
+    --split test --figure both --slide
+```
+
+`scripts/sbatch-eval-grid` wraps the whole thing for Slurm:
+
+```bash
+sbatch --export=ALL,RUN_ID=eval-4cond,CELLS=minimal scripts/sbatch-eval-grid
+```
+
 ### Re-scoring without re-running inference
 
 Predictions are cached per method, so changing a threshold or adding a
@@ -99,17 +155,21 @@ made.
 ### Running the tests
 
 ```bash
-python tests/run_all_tests.py           # everything, ~40s
+python tests/run_all_tests.py           # everything, ~3.5 minutes
 ```
 
 Or individually:
 
 ```bash
-python tests/test_evaluation.py        # metric arithmetic, 29 tests
-python tests/test_pipeline_smoke.py    # full pipeline with a fake detector
-python tests/test_figure_layout.py     # figure geometry, 4 tests
-python tests/test_rescore.py           # rescore error handling, 4 tests
-python tests/test_rescore_e2e.py       # rescore end to end
+python tests/test_evaluation.py            # metric arithmetic
+python tests/test_pipeline_smoke.py        # full pipeline with a fake detector
+python tests/test_figure_layout.py         # figure geometry
+python tests/test_rescore.py               # rescore error handling
+python tests/test_rescore_e2e.py           # rescore end to end
+python tests/test_split_and_pixel_source.py  # frozen split + precomputed pixels
+python tests/test_cells.py                 # grid cell expansion, minimal vs full
+python tests/test_grid.py                  # grid runner, manifests, provenance
+python tests/test_grid_figure.py           # grid and summary figures
 ```
 
 They are plain scripts with their own runners, so pytest is not required

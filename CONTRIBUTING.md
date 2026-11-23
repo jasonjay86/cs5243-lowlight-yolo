@@ -4,12 +4,12 @@ This is a 3-person semester project. The workflow is light but consistent.
 
 ## Branching
 
-- `main` is **protected** — no direct commits, no force-pushes.
-- Each enhancement module gets its own feature branch:
-  - `feature/clahe`            ← Krutin Patel
-- `feature/snr-aware`        ← Jason Johnson
-- `feature/yolo-detector`    ← Rich Zanni
-- `feature/eval-harness`     ← unassigned (grab after detection contract is stable)
+- `main` is **protected**: no direct commits, no force-pushes.
+- Each piece of work gets its own feature branch:
+  - `feature/clahe`: Krutin Patel
+  - `feature/snr-aware`: Jason Johnson
+  - `feature/yolo-detector`: Rich Zanni
+  - `feature/eval-harness`: the evaluation package
 
 ## Workflow
 
@@ -79,9 +79,8 @@ the "review" role from the "merge" role cleanly.
 
 `jasonjay86` is configured as a [bypass actor on the `main` branch
 protection rule](https://github.com/jasonjay86/cs5243-lowlight-yolo/settings/branches),
-so the repo owner can merge without an external approval. **This is a
-backdoor by design** — it exists so Jason can land urgent hotfixes when
-the team is unavailable. The expectation is:
+so the repo maintainer can merge without an external approval. It exists so an
+urgent fix can land when the others are unavailable. The expectation is:
 
 - Use it sparingly. The default path is still: branch → PR → wait for
   peer review → author merges.
@@ -106,6 +105,7 @@ to nail down the contract — write that first.
 
 ## Datasets and weights
 
-- Datasets → under `data/` (gitignored). Don't commit.
-- Pretrained weights → under `enhancements/<method>/weights/` (gitignored).
+- Datasets belong under `data/` (gitignored, except `data/README.md` and the
+  frozen split manifest).
+- Pretrained weights belong under `enhancements/<method>/weights/` (gitignored).
   Use Git LFS or external storage if a weight is small enough to share.
